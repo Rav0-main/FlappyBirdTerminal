@@ -14,21 +14,26 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 
 # Если нет src директории, ищем в текущей
 if(NOT SOURCES)
-    file(GLOB_RECURSE SOURCES "*.cpp")
+  file(GLOB_RECURSE SOURCES "*.cpp")
 endif()
+
+find_package(Curses REQUIRED)
 
 # Создание исполняемого файла
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-# Настройка путей для заголовочных файлов
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+# Настройка путей для заголовочных файлов и линковка библиотек
+target_include_directories(
+  ${PROJECT_NAME} PRIVATE include
+  ${CURSES_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CURSES_LIBRARIES})
 
 # Включение предупреждений
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 # Настройка типа сборки по умолчанию
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type" FORCE)
 endif()
