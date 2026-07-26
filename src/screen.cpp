@@ -1,14 +1,9 @@
 #include "screen.h"
-#include <stdexcept>
+#include <ncurses.h>
 
 void TerminalScreen::Draw(const char symbol)
 {
     waddch(window_, symbol);
-}
-
-void TerminalScreen::Draw(const IDrawable &shape)
-{
-    shape.Draw();
 }
 
 void TerminalScreen::Update()
@@ -34,6 +29,16 @@ void TerminalScreen::SetForegroundColor(const TerminalColor &fg_color)
     current_fgcolor_ = std::move(fg_color);
 }
 
+void TerminalScreen::FlushColor()
+{
+    wattroff(window_, COLOR_PAIR(1));
+    init_pair(1, default_fgcolor_, default_bgcolor_);
+    wattron(window_, COLOR_PAIR(1));
+
+    current_fgcolor_ = default_fgcolor_;
+    current_bgcolor_ = default_bgcolor_;
+}
+
 TerminalScreen &TerminalScreen::operator<<(const char symbol)
 {
     Draw(symbol);
@@ -46,9 +51,9 @@ TerminalScreen &TerminalScreen::operator<<(const TerminalColor &fg_color)
     return *this;
 }
 
-TerminalScreen &TerminalScreen::operator<<(const IDrawable &shape)
+TerminalScreen &TerminalScreen::operator<<(const IDrawable<TerminalColor> &shape)
 {
-    Draw(shape);
+    shape.DrawOn(*this);
     return *this;
 }
 
@@ -59,28 +64,34 @@ void TerminalScreen::SetCursorAbsolute(const SizeParam abs_x, const SizeParam ab
 
 void TerminalScreen::SetCursor(const Coordinate x, const Coordinate y)
 {
-    if (x < start_val_x_)
-    {
-        throw std::out_of_range("X value must be >= " + std::to_string(start_val_x_));
-    }
-    if (y < start_val_y_)
-    {
-        throw std::out_of_range("Y value must be >= " + std::to_string(start_val_y_));
-    }
-    SetCursorAbsolute((x - start_val_x_) % width_, (y - start_val_y_) % height_);
+    Coordinate new_x = (x - start_val_x_) % width_;
+    new_x = new_x < 0 ? new_x + width_ : new_x;
+
+    Coordinate new_y = (y - start_val_y_) % height_;
+    new_y = new_y < 0 ? new_y + height_ : new_y;
+
+    SetCursorAbsolute(new_x, new_y);
 }
 
-void TerminalScreen::SetCursorStartVals() noexcept
+void TerminalScreen::SetCursorStartVals()
 {
     SetCursorAbsolute(0, 0);
 }
 
-void TerminalScreen::SetCursorVisible(const bool visible) noexcept
+void TerminalScreen::SetCursorVisible(const bool visible)
 {
     curs_set(visible);
 }
 
-void TerminalScreen::Clear() noexcept
+void TerminalScreen::MoveCursor(const Coordinate delta_x, const Coordinate delta_y)
+{
+    Coordinate current_x, current_y;
+    getyx(window_, current_y, current_x);
+
+    SetCursor(current_x + delta_x, current_y + delta_y);
+}
+
+void TerminalScreen::Clear()
 {
     werase(window_);
 }

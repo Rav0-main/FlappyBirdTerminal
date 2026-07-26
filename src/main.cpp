@@ -3,18 +3,21 @@
 
 int main()
 {
-    TerminalScreen::Init();
+    TerminalScreen std_screen = TerminalScreen::Init();
 
-    TerminalScreen std_screen(stdscr, {0, 0}, {0, 0}, {COLOR_YELLOW + 8, COLOR_BLACK});
-    TerminalScreen game_screen({5, 5}, {1, 1}, {0, 0}, {COLOR_BLUE + 8, COLOR_WHITE});
-    ScreenRectangle<TerminalColor> game_rect(std_screen, game_screen, COLOR_YELLOW + 8);
-    game_screen << game_rect;
+    TerminalScreen game_screen({5, 5}, {50, 3}, {0, 0}, {COLOR_RED + 8, COLOR_WHITE});
+    ScreenRectangle<TerminalColor> game_rect(game_screen, COLOR_WHITE + 8);
+
+    std_screen << game_rect;
+    std_screen.Update();
+
+    game_screen.SetCursorStartVals();
+    game_screen.MoveCursor(2, 1);
+    game_screen << '<' << '>';
 
     game_screen.Update();
 
     getch();
-
-    TerminalScreen::Close();
 
     return 0;
 }

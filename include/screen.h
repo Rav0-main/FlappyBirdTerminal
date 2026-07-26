@@ -31,12 +31,13 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     void SetCursorAbsolute(const SizeParam abs_x, const SizeParam abs_y);
 
    public:
-    static void Init()
+    static TerminalScreen Init()
     {
         initscr();
         start_color();
+
+        return TerminalScreen(stdscr, {0, 0}, {0, 0});
     }
-    static void Close() { endwin(); }
 
     TerminalScreen(const std::pair<SizeParam, SizeParam> &size,
                    const std::pair<DeltaVal, DeltaVal> &delties,
@@ -80,28 +81,32 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     Coordinate start_val_y() const noexcept override { return start_val_y_; }
 
     void Draw(const char symbol) override;
-    void Draw(const IDrawable &shape) override;
     void Update() override;
 
     void SetBackgroundColor(const TerminalColor &bg_color) override;
     void SetForegroundColor(const TerminalColor &fg_color) override;
-    // void FlushColor() override;
+    void FlushColor() override;
 
     TerminalScreen &operator<<(const TerminalColor &color);
     TerminalScreen &operator<<(const char symbol);
-    TerminalScreen &operator<<(const IDrawable &shape);
+    TerminalScreen &operator<<(const IDrawable<TerminalColor> &shape);
 
     void SetCursor(const Coordinate x, const Coordinate y) override;
-    void SetCursorStartVals() noexcept override;
-    void SetCursorVisible(const bool visible = false) noexcept override;
+    void SetCursorStartVals() override;
+    void MoveCursor(const Coordinate delta_x, const Coordinate delta_y) override;
+    void SetCursorVisible(const bool visible = false) override;
 
-    void Clear() noexcept override;
+    void Clear() override;
 
     ~TerminalScreen() override
     {
         if (window_ != stdscr)
         {
             delwin(window_);
+        }
+        else
+        {
+            endwin();
         }
     }
 };

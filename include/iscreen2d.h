@@ -1,8 +1,6 @@
 #ifndef ISCREEN_H
 #define ISCREEN_H
 
-#include "idrawable.h"
-
 template <typename Color>
 struct IScreen2D
 {
@@ -20,21 +18,20 @@ struct IScreen2D
 
     // Drawing
     virtual void Draw(const char symbol) = 0;
-    virtual void Draw(const IDrawable &shape) = 0;
     virtual void Update() = 0;
 
     // Color
     virtual void SetBackgroundColor(const Color &bg_color) = 0;
     virtual void SetForegroundColor(const Color &fg_color) = 0;
-    // virtual void FlushColor() = 0;
+    virtual void FlushColor() = 0;
 
     // Cursor
     virtual void SetCursor(const Coordinate x, const Coordinate y) = 0;
-    virtual void SetCursorStartVals() noexcept = 0;
-    // virtual void MoveCursor(const Coordinate delta_x, const Coordinate delta_y) = 0;
-    virtual void SetCursorVisible(const bool visisble = false) noexcept = 0;
+    virtual void SetCursorStartVals() = 0;
+    virtual void MoveCursor(const Coordinate delta_x, const Coordinate delta_y) = 0;
+    virtual void SetCursorVisible(const bool visisble = false) = 0;
 
-    virtual void Clear() noexcept = 0;
+    virtual void Clear() = 0;
 
     virtual ~IScreen2D() {}
 };
