@@ -45,6 +45,14 @@ class TerminalScreen : public IScreen2D<TerminalColor>
 
         return TerminalScreen(stdscr, {0, 0}, {0, 0});
     }
+    static void GameModeOn()
+    {
+        cbreak();
+        noecho();
+        keypad(stdscr, TRUE);
+        nodelay(stdscr, TRUE);
+        curs_set(0);
+    }
 
     TerminalScreen(const std::pair<SizeParam, SizeParam> &size,
                    const std::pair<DeltaVal, DeltaVal> &delties,
