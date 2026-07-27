@@ -1,5 +1,4 @@
 #include "screen.h"
-#include <ncurses.h>
 
 void TerminalScreen::Draw(const char symbol)
 {
@@ -11,29 +10,41 @@ void TerminalScreen::Update()
     wrefresh(window_);
 }
 
+decltype(COLOR_PAIRS) TerminalScreen::GetColorPairId(const TerminalColor &fg,
+                                                     const TerminalColor &bg) noexcept
+{
+    const uint32_t color_pair_mask = static_cast<uint32_t>(fg) << 16U | static_cast<uint32_t>(bg);
+    if (color_pairs.contains(color_pair_mask))
+    {
+        return color_pairs.at(color_pair_mask);
+    }
+
+    return color_pairs[color_pair_mask] = color_pairs.size() + 1;
+}
+
 void TerminalScreen::SetBackgroundColor(const TerminalColor &bg_color)
 {
-    wattroff(window_, COLOR_PAIR(1));
-    init_pair(1, current_fgcolor_, bg_color);
-    wattron(window_, COLOR_PAIR(1));
+    const auto color_pair_id = GetColorPairId(current_fgcolor_, bg_color);
+    init_pair(color_pair_id, current_fgcolor_, bg_color);
+    wattron(window_, COLOR_PAIR(color_pair_id));
 
     current_bgcolor_ = std::move(bg_color);
 }
 
 void TerminalScreen::SetForegroundColor(const TerminalColor &fg_color)
 {
-    wattroff(window_, COLOR_PAIR(1));
-    init_pair(1, fg_color, current_bgcolor_);
-    wattron(window_, COLOR_PAIR(1));
+    const auto color_pair_id = GetColorPairId(fg_color, current_bgcolor_);
+    init_pair(color_pair_id, fg_color, current_bgcolor_);
+    wattron(window_, COLOR_PAIR(color_pair_id));
 
     current_fgcolor_ = std::move(fg_color);
 }
 
 void TerminalScreen::FlushColor()
 {
-    wattroff(window_, COLOR_PAIR(1));
-    init_pair(1, default_fgcolor_, default_bgcolor_);
-    wattron(window_, COLOR_PAIR(1));
+    const auto color_pair_id = GetColorPairId(default_fgcolor_, default_bgcolor_);
+    init_pair(color_pair_id, default_fgcolor_, default_bgcolor_);
+    wattron(window_, COLOR_PAIR(color_pair_id));
 
     current_fgcolor_ = default_fgcolor_;
     current_bgcolor_ = default_bgcolor_;

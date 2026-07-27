@@ -5,12 +5,17 @@
 #define SCREEN_H
 
 #include <ncurses.h>
-#include <cstdlib>
+#include <unordered_map>
 #include <utility>
 #include "idrawable.h"
 #include "iscreen2d.h"
 
-using TerminalColor = short;
+using TerminalColor = int16_t;
+/*
+ * In ncurses.h color is short.
+ */
+static_assert(sizeof(TerminalColor) >= sizeof(short),
+              "sizeof(short) must be <= 16 bits. On platform this project not supported.");
 
 class TerminalScreen : public IScreen2D<TerminalColor>
 {
@@ -20,6 +25,7 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     using Coordinate = typename IScreen2D<TerminalColor>::Coordinate;
 
    private:
+    static inline std::unordered_map<uint32_t, decltype(COLOR_PAIRS)> color_pairs;
     const SizeParam width_, height_;
     const DeltaVal delta_x_, delta_y_;
     const Coordinate start_val_x_, start_val_y_;
@@ -27,7 +33,8 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     TerminalColor current_fgcolor_, current_bgcolor_;
     WINDOW *window_;
 
-    std::pair<int, int> GetCursor() const noexcept;
+    static decltype(COLOR_PAIRS) GetColorPairId(const TerminalColor &fg,
+                                                const TerminalColor &bg) noexcept;
     void SetCursorAbsolute(const SizeParam abs_x, const SizeParam abs_y);
 
    public:
@@ -68,8 +75,9 @@ class TerminalScreen : public IScreen2D<TerminalColor>
           current_bgcolor_(default_bgcolor_),
           window_(window)
     {
-        init_pair(1, default_fgcolor_, default_bgcolor_);
-        wbkgd(window_, COLOR_PAIR(1) | ' ');
+        const auto color_pair_id = GetColorPairId(default_fgcolor_, default_bgcolor_);
+        init_pair(color_pair_id, default_fgcolor_, default_bgcolor_);
+        wattron(window_, COLOR_PAIR(color_pair_id) | ' ');
         Update();
     }
 
@@ -79,6 +87,8 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     DeltaVal delta_y() const noexcept override { return delta_y_; }
     Coordinate start_val_x() const noexcept override { return start_val_x_; }
     Coordinate start_val_y() const noexcept override { return start_val_y_; }
+    TerminalColor default_fgcolor() const noexcept { return default_fgcolor_; }
+    TerminalColor default_bgcolor() const noexcept { return default_bgcolor_; }
 
     void Draw(const char symbol) override;
     void Update() override;
