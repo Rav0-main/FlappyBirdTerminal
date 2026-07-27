@@ -12,8 +12,8 @@ class ScreenRectangle : public IDrawable<Color>
     const Color color_;
 
    public:
-    ScreenRectangle(const IScreen2D<Color> &screen_for_rectangle, const Color &color)
-        : rectangle_screen_(screen_for_rectangle), color_(color)
+    ScreenRectangle(const IScreen2D<Color> &rectangle_for, const Color &color)
+        : rectangle_screen_(rectangle_for), color_(color)
     {
     }
 
