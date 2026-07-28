@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include "bird.h"
 #include "config.h"
+#include "pillow.h"
 #include "screen.h"
 #include "screen_rectangle.h"
 
@@ -23,33 +24,45 @@ int main()
                                {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
     ScreenRectangle<TerminalColor> game_screen_rectangle(game_screen, COLOR_WHITE + 8);
 
-    Bird bird(game_screen.width() * RATIO_BIRD_POSITION_X,
-              game_screen.height() * RATIO_BIRD_POSITION_Y, COLOR_RED);
+    Bird bird(
+        {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
+        BIRD_PICTURE, COLOR_RED);
 
     TerminalScreen::GameModeOn();
+    Pillow pillow({40, 1}, 5, {2, 1}, 1,
+                  {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE}, COLOR_GREEN);
+
+    std_screen.Clear();
+    std_screen << game_screen_rectangle;
+    std_screen.Update();
 
     bool run = true;
+    bool dead = false;
     while (run)
     {
-        char key = getch();
+        int key = getch();
         if (key != ERR)
         {
             switch (key)
             {
                 case 'w':
-                    bird.set_y(bird.y() - 1);
+                    if (!dead)
+                        bird.set_y(bird.y() - 1);
                     break;
 
                 case 's':
-                    bird.set_y(bird.y() + 1);
+                    if (!dead)
+                        bird.set_y(bird.y() + 1);
                     break;
 
                 case 'd':
-                    bird.set_x(bird.x() + 1);
+                    if (!dead)
+                        bird.set_x(bird.x() + 1);
                     break;
 
                 case 'a':
-                    bird.set_x(bird.x() - 1);
+                    if (!dead)
+                        bird.set_x(bird.x() - 1);
                     break;
 
                 case 'q':
@@ -57,16 +70,19 @@ int main()
                     run = false;
             }
         }
-
-        std_screen.Clear();
-        std_screen << game_screen_rectangle;
-        std_screen.Update();
-
-        game_screen << bird;
-        game_screen.Update();
+        if (pillow.HasCollisionWith(bird))
+        {
+            dead = true;
+        }
+        if (!dead)
+        {
+            game_screen.Clear();
+            game_screen << pillow << bird;
+            game_screen.Update();
+        }
 
         fps_tick(FPS);
     }
 
-    return 0;
+    return dead;
 }
