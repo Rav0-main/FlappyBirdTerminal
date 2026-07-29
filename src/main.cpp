@@ -24,13 +24,14 @@ int main()
                                {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
     ScreenRectangle<TerminalColor> game_screen_rectangle(game_screen, COLOR_WHITE + 8);
 
-    Bird bird(
+    Bird<TerminalColor> bird(
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
         BIRD_PICTURE, COLOR_RED);
 
     TerminalScreen::GameModeOn();
-    Pillow pillow({40, 1}, 5, {2, 1}, 1,
-                  {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE}, COLOR_GREEN);
+    Pillow<TerminalColor> pillow({40, 1}, 5, {2, 1}, 1,
+                                 {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE},
+                                 COLOR_GREEN);
 
     std_screen.Clear();
     std_screen << game_screen_rectangle;
