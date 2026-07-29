@@ -29,9 +29,9 @@ int main()
         BIRD_PICTURE, COLOR_RED);
 
     TerminalScreen::GameModeOn();
-    Pillow<TerminalColor> pillow({40, 1}, 5, {2, 1}, 1,
-                                 {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE},
-                                 COLOR_GREEN);
+    Pillow<TerminalColor> pillow(
+        {game_screen.start_val_x() + game_screen.width() - 1, 1}, 5, {2, 1}, 1,
+        {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE}, COLOR_GREEN);
 
     std_screen.Clear();
     std_screen << game_screen_rectangle;
@@ -71,6 +71,13 @@ int main()
                     run = false;
             }
         }
+
+        pillow.set_x(pillow.x() - 1);
+        if (pillow.x() + pillow.width() < game_screen.start_val_x())
+        {
+            pillow.set_x(game_screen.start_val_x() + game_screen.width() + 1);
+        }
+
         if (pillow.HasCollisionWith(bird))
         {
             dead = true;

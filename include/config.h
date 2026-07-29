@@ -3,7 +3,7 @@
 
 #include <string>
 
-inline constexpr unsigned short FPS = 60U;
+inline constexpr unsigned short FPS = 30U;
 static_assert(FPS != 0U, "FPS must be != 0.");
 
 /*
