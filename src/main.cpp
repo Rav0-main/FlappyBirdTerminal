@@ -1,7 +1,10 @@
+#include <ncurses.h>
 #include <unistd.h>
+#include <vector>
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
+#include "randomizer.h"
 #include "screen.h"
 #include "screen_rectangle.h"
 
@@ -29,9 +32,26 @@ int main()
         BIRD_PICTURE, COLOR_RED);
 
     TerminalScreen::GameModeOn();
-    Pillow<TerminalColor> pillow(
-        {game_screen.start_val_x() + game_screen.width() - 1, 1}, 5, {2, 1}, 1,
-        {PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE}, COLOR_GREEN);
+
+    Randomizer<TerminalScreen::Coordinate> pillow_y_random(game_screen.start_val_y(),
+                                                           game_screen.height() / 2);
+    Randomizer<TerminalScreen::SizeParam> pillow_width_random(2, 5);
+    Randomizer<TerminalScreen::SizeParam> pillow_non_empty_heights(1, 7);
+    Randomizer<TerminalScreen::SizeParam> pillow_empty_height(2, 5);
+
+    const TerminalScreen::Coordinate x_prev = game_screen.width();
+
+    std::vector<Pillow<TerminalColor>> pillows;
+    for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
+    {
+        pillows.emplace_back(
+            std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW, pillow_y_random()),
+            pillow_width_random(),
+            std::make_pair(pillow_non_empty_heights(), pillow_non_empty_heights()),
+            pillow_empty_height(),
+            std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
+            COLOR_GREEN);
+    }
 
     std_screen.Clear();
     std_screen << game_screen_rectangle;
@@ -39,6 +59,7 @@ int main()
 
     bool run = true;
     bool dead = false;
+
     while (run)
     {
         int key = getch();
@@ -72,20 +93,22 @@ int main()
             }
         }
 
-        pillow.set_x(pillow.x() - 1);
-        if (pillow.x() + pillow.width() < game_screen.start_val_x())
+        for (auto &pillow : pillows)
         {
-            pillow.set_x(game_screen.start_val_x() + game_screen.width() + 1);
-        }
-
-        if (pillow.HasCollisionWith(bird))
-        {
-            dead = true;
+            pillow.set_x(pillow.x() - 1);
+            if (pillow.x() + pillow.width() < game_screen.start_val_x())
+            {
+                pillow.set_x(game_screen.start_val_x() + game_screen.width());
+            }
         }
         if (!dead)
         {
             game_screen.Clear();
-            game_screen << pillow << bird;
+            for (const auto &pillow : pillows)
+            {
+                game_screen << pillow;
+            }
+            game_screen << bird;
             game_screen.Update();
         }
 

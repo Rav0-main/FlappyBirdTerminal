@@ -3,7 +3,7 @@
 
 #include <string>
 
-inline constexpr unsigned short FPS = 30U;
+inline constexpr unsigned short FPS = 60U;
 static_assert(FPS != 0U, "FPS must be != 0.");
 
 /*
@@ -49,5 +49,8 @@ static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0,
 inline constexpr char PILLOW_START_PICTURE = '[';
 inline constexpr char PILLOW_MIDDLE_PICTURE = '-';
 inline constexpr char PILLOW_END_PICTURE = ']';
+
+/* Screen width per pillow */
+inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 30U;
 
 #endif  // !CONFIG_H
