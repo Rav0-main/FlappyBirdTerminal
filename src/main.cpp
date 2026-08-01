@@ -9,6 +9,10 @@
 #include "screen.h"
 #include "screen_rectangle.h"
 
+/*
+ * fix generating: problem: pillow_real_up_empty_range and pillow_real_down_empty_range can be
+ * overflow of values.
+ */
 class PillowRandomManager
 {
    private:
@@ -19,10 +23,13 @@ class PillowRandomManager
     Randomizer<unsigned int> empty_height_ratio_;
     Randomizer<unsigned int> nonempty_down_height_ratio_;
 
+    const TerminalScreen::SizeParam screen_start_y_, screen_end_y_;
+
     Randomizer<TerminalScreen::SizeParam> GetAbsoluteHeightRandomizer(
         const TerminalScreen &game_screen)
     {
-        if (game_screen.height() > PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second)
+        if (game_screen.height() >=
+            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + 3)
         {
             return Randomizer<TerminalScreen::SizeParam>(
                 game_screen.height() - PILLOW_UP_EMPTY_RANGE.second -
@@ -48,11 +55,28 @@ class PillowRandomManager
           empty_height_ratio_(PILLOW_EMPTY_RATIOS_RANGE.first, PILLOW_EMPTY_RATIOS_RANGE.second),
 
           nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
-                                      PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second)
+                                      PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second),
+          screen_start_y_(game_screen.start_val_y()),
+          screen_end_y_(game_screen.start_val_y() + game_screen.height() - 1)
     {
     }
 
-    TerminalScreen::Coordinate y() { return y_(); }
+    TerminalScreen::Coordinate y(const TerminalScreen::SizeParam H)
+    {
+        unsigned short max_reps = 5;
+        auto y = y_();
+
+        while (max_reps > 0 && y + static_cast<TerminalScreen::Coordinate>(H) > screen_end_y_)
+        {
+            y = y_();
+            --max_reps;
+        }
+        if (y + static_cast<TerminalScreen::Coordinate>(H) > screen_end_y_)
+        {
+            return screen_start_y_;
+        }
+        return y;
+    }
     TerminalScreen::SizeParam width() { return width_(); }
 
     std::array<TerminalScreen::SizeParam, 3> heights()
@@ -118,6 +142,29 @@ static inline TerminalScreen GetGameScreen(const TerminalScreen &std_screen)
                           {0, 0}, {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
 }
 
+static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
+                                   const TerminalScreen &game_screen,
+                                   PillowRandomManager &pillow_randomizer)
+{
+    const auto x_prev = game_screen.width();
+    TerminalScreen::SizeParam sum_width_prev = 0;
+    for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
+    {
+        const auto [nonempty_up_height, empty_height, nonempty_down_height] =
+            pillow_randomizer.heights();
+        pillows.emplace_back(
+            std::make_pair(
+                x_prev + i * RATIO_WIDTH_PER_PILLOW + sum_width_prev,
+                pillow_randomizer.y(nonempty_up_height + empty_height + nonempty_down_height)),
+            pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
+            empty_height,
+            std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
+            COLOR_GREEN);
+
+        sum_width_prev += pillows.back().width();
+    }
+}
+
 static inline void FPSTick(const unsigned short fps)
 {
     usleep(1e6L / fps);
@@ -147,24 +194,15 @@ int main()
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
         BIRD_PICTURE, COLOR_RED);
 
-    const TerminalScreen::Coordinate x_prev = game_screen.width();
-
     PillowRandomManager pillow_randomizer(game_screen);
+    /*
+     * Do cycle buffer (for remove memory allocations on every delete pillow).
+     */
     std::deque<Pillow<TerminalColor>> pillows;
     /*
      * fix starting spawning
      */
-    for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
-    {
-        const auto [nonempty_up_height, empty_height, nonempty_down_height] =
-            pillow_randomizer.heights();
-        pillows.emplace_back(
-            std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW, pillow_randomizer.y()),
-            pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
-            empty_height,
-            std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
-            COLOR_GREEN);
-    }
+    GeneratePillows(pillows, game_screen, pillow_randomizer);
     TerminalScreen::GameModeOn();
 
     std_screen.Clear();
@@ -172,7 +210,7 @@ int main()
     std_screen.Update();
 
     bool run = true;
-    bool dead = false;
+    bool pillows_stopped = false;
 
     while (run)
     {
@@ -182,23 +220,23 @@ int main()
             switch (key)
             {
                 case 'w':
-                    if (!dead)
-                        bird.set_y(bird.y() - 1);
+                    bird.set_y(bird.y() - 1);
                     break;
 
                 case 's':
-                    if (!dead)
-                        bird.set_y(bird.y() + 1);
+                    bird.set_y(bird.y() + 1);
                     break;
 
                 case 'd':
-                    if (!dead)
-                        bird.set_x(bird.x() + 1);
+                    bird.set_x(bird.x() + 1);
                     break;
 
                 case 'a':
-                    if (!dead)
-                        bird.set_x(bird.x() - 1);
+                    bird.set_x(bird.x() - 1);
+                    break;
+
+                case ' ':
+                    pillows_stopped = !pillows_stopped;
                     break;
 
                 case 'q':
@@ -215,35 +253,39 @@ int main()
                 pillow_randomizer.heights();
 
             pillows.emplace_back(
-                std::make_pair(game_screen.start_val_x() + game_screen.width(),
-                               pillow_randomizer.y()),
+                std::make_pair(
+                    game_screen.start_val_x() + game_screen.width(),
+                    pillow_randomizer.y(nonempty_up_height + empty_height + nonempty_down_height)),
                 pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
                 empty_height,
                 std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
                 COLOR_GREEN);
         }
 
-        for (auto &pillow : pillows)
+        if (!pillows_stopped)
         {
-            pillow.set_x(pillow.x() - 1);
-            if (pillow.x() + pillow.width() < game_screen.start_val_x())
+            for (auto &pillow : pillows)
             {
-                pillows.pop_front();
+                pillow.set_x(pillow.x() - 1);
+                if (pillow.x() + pillow.width() < game_screen.start_val_x())
+                {
+                    pillows.pop_front();
+                }
             }
         }
-        if (!dead)
+
+        game_screen.Clear();
+
+        for (const auto &pillow : pillows)
         {
-            game_screen.Clear();
-            for (const auto &pillow : pillows)
-            {
-                game_screen << pillow;
-            }
-            game_screen << bird;
-            game_screen.Update();
+            game_screen << pillow;
         }
+
+        game_screen << bird;
+        game_screen.Update();
 
         FPSTick(FPS);
     }
 
-    return dead;
+    return pillows_stopped;
 }

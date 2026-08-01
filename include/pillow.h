@@ -59,7 +59,8 @@ class Pillow : public ICollision, public IDrawable<Color>
     }
     bool HasCollisionWith(const Bird<Color> &bird) const
     {
-        const auto bird_end_x = bird.x() + static_cast<decltype(bird.x())>(bird.length()) - 1;
+        const auto bird_end_x =
+            bird.x() + static_cast<IScreen2D<Color>::Coordinate>(bird.length()) - 1;
         if (bird_end_x < x_)
         {
             return false;

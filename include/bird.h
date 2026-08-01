@@ -27,9 +27,9 @@ class Bird : public ICollision, public IDrawable<Color>
          const Color &color)
         : x_(start_coords.first), y_(start_coords.second), picture_(picture), fg_color_(color)
     {
-        if (picture_.length() != 2)
+        if (picture_.length() < 2)
         {
-            throw std::out_of_range("Picture length must be == 2.");
+            throw std::out_of_range("Picture length must be >= 2.");
         }
     }
 
