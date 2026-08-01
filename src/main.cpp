@@ -1,6 +1,7 @@
-#include <ncurses.h>
 #include <unistd.h>
-#include <vector>
+#include <algorithm>
+#include <array>
+#include <deque>
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
@@ -8,7 +9,116 @@
 #include "screen.h"
 #include "screen_rectangle.h"
 
-static inline void fps_tick(const unsigned short fps)
+class PillowRandomManager
+{
+   private:
+    Randomizer<TerminalScreen::Coordinate> y_;
+    Randomizer<TerminalScreen::SizeParam> absolute_height_;
+    Randomizer<TerminalScreen::SizeParam> width_;
+    Randomizer<unsigned int> nonempty_up_height_ratio_;
+    Randomizer<unsigned int> empty_height_ratio_;
+    Randomizer<unsigned int> nonempty_down_height_ratio_;
+
+    Randomizer<TerminalScreen::SizeParam> GetAbsoluteHeightRandomizer(
+        const TerminalScreen &game_screen)
+    {
+        if (game_screen.height() > PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second)
+        {
+            return Randomizer<TerminalScreen::SizeParam>(
+                game_screen.height() - PILLOW_UP_EMPTY_RANGE.second -
+                    PILLOW_DOWN_EMPTY_RANGE.second,
+                game_screen.height() - PILLOW_UP_EMPTY_RANGE.first - PILLOW_DOWN_EMPTY_RANGE.first);
+        }
+        return Randomizer<TerminalScreen::SizeParam>(
+            game_screen.height() - PILLOW_UP_EMPTY_RANGE.first - PILLOW_DOWN_EMPTY_RANGE.first,
+            game_screen.height());
+    }
+
+   public:
+    PillowRandomManager(const TerminalScreen &game_screen)
+        : y_(game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.first,
+             game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.second),
+          absolute_height_(GetAbsoluteHeightRandomizer(game_screen)),
+
+          width_(PILLOW_WIDTH_RANGE.first, PILLOW_WIDTH_RANGE.second),
+
+          nonempty_up_height_ratio_(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first,
+                                    PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second),
+
+          empty_height_ratio_(PILLOW_EMPTY_RATIOS_RANGE.first, PILLOW_EMPTY_RATIOS_RANGE.second),
+
+          nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
+                                      PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second)
+    {
+    }
+
+    TerminalScreen::Coordinate y() { return y_(); }
+    TerminalScreen::SizeParam width() { return width_(); }
+
+    std::array<TerminalScreen::SizeParam, 3> heights()
+    {
+        const auto H = absolute_height_();
+        const auto Hd = static_cast<double>(H);
+
+        const auto i = nonempty_up_height_ratio_();
+        const auto j = empty_height_ratio_();
+        const auto k = nonempty_down_height_ratio_();
+
+        std::array<double, 3> exact = {Hd * i / (i + j + k), Hd * j / (i + j + k),
+                                       Hd * k / (i + j + k)};
+
+        std::array<TerminalScreen::SizeParam, 3> heights;
+        std::array<double, 3> remainders;
+
+        for (unsigned short i = 0; i < 3; ++i)
+        {
+            heights[i] = static_cast<TerminalScreen::SizeParam>(exact[i]);
+            remainders[i] = exact[i] - heights[i];
+        }
+
+        TerminalScreen::SizeParam current_sum = std::accumulate(heights.begin(), heights.end(), 0U);
+        TerminalScreen::SizeParam p = H - current_sum;
+
+        std::array<unsigned short, 3> indexes = {0, 1, 2};
+        std::sort(indexes.begin(), indexes.end(), [&remainders](unsigned short i, unsigned short j)
+                  { return remainders[i] > remainders[j]; });
+
+        for (unsigned short i = 0; i < p; ++i)
+        {
+            ++heights[indexes[i]];
+        }
+
+        for (unsigned short i = 0; i < 3; ++i)
+        {
+            if (heights[i] < 1)
+            {
+                heights[i] = 1;
+                auto max_iter = std::max_element(heights.begin(), heights.end());
+                --(*max_iter);
+            }
+        }
+
+        return heights;
+    }
+};
+
+static inline TerminalScreen GetGameScreen(const TerminalScreen &std_screen)
+{
+    TerminalScreen::SizeParam width = std_screen.width() * RATIO_WIDTH;
+    TerminalScreen::SizeParam height = std_screen.height() * RATIO_HEIGHT;
+
+    if (height > HEIGHT_CRITICAL)
+    {
+        return TerminalScreen(
+            {width, height}, {(std_screen.width() - width) / 2, (std_screen.height() - height) / 2},
+            {0, 0}, {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
+    }
+
+    return TerminalScreen({width, std_screen.height() - 2}, {(std_screen.width() - width) / 2, 1},
+                          {0, 0}, {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
+}
+
+static inline void FPSTick(const unsigned short fps)
 {
     usleep(1e6L / fps);
 }
@@ -16,42 +126,46 @@ static inline void fps_tick(const unsigned short fps)
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
+    TerminalScreen game_screen = GetGameScreen(std_screen);
 
-    TerminalScreen::SizeParam game_screen_width = std_screen.width() * RATIO_WIDTH;
-    TerminalScreen::SizeParam game_screen_height = std_screen.height() * RATIO_HEIGHT;
+    if (game_screen.height() < HEIGHT_MIN)
+    {
+        std_screen << "You have very small screen height :(";
+        getch();
+        return 1;
+    }
+    if (game_screen.width() < RATIO_WIDTH_PER_PILLOW)
+    {
+        std_screen << "You have very small screen width :(";
+        getch();
+        return 1;
+    }
 
-    TerminalScreen game_screen({game_screen_width, game_screen_height},
-                               {(std_screen.width() - game_screen_width) / 2,
-                                (std_screen.height() - game_screen_height) / 2},
-                               {0, 0},
-                               {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
     ScreenRectangle<TerminalColor> game_screen_rectangle(game_screen, COLOR_WHITE + 8);
 
     Bird<TerminalColor> bird(
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
         BIRD_PICTURE, COLOR_RED);
 
-    TerminalScreen::GameModeOn();
-
-    Randomizer<TerminalScreen::Coordinate> pillow_y_random(game_screen.start_val_y(),
-                                                           game_screen.height() / 2);
-    Randomizer<TerminalScreen::SizeParam> pillow_width_random(2, 5);
-    Randomizer<TerminalScreen::SizeParam> pillow_non_empty_heights(1, 7);
-    Randomizer<TerminalScreen::SizeParam> pillow_empty_height(2, 5);
-
     const TerminalScreen::Coordinate x_prev = game_screen.width();
 
-    std::vector<Pillow<TerminalColor>> pillows;
+    PillowRandomManager pillow_randomizer(game_screen);
+    std::deque<Pillow<TerminalColor>> pillows;
+    /*
+     * fix starting spawning
+     */
     for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
     {
+        const auto [nonempty_up_height, empty_height, nonempty_down_height] =
+            pillow_randomizer.heights();
         pillows.emplace_back(
-            std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW, pillow_y_random()),
-            pillow_width_random(),
-            std::make_pair(pillow_non_empty_heights(), pillow_non_empty_heights()),
-            pillow_empty_height(),
+            std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW, pillow_randomizer.y()),
+            pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
+            empty_height,
             std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
             COLOR_GREEN);
     }
+    TerminalScreen::GameModeOn();
 
     std_screen.Clear();
     std_screen << game_screen_rectangle;
@@ -93,12 +207,28 @@ int main()
             }
         }
 
+        if (game_screen.start_val_x() + game_screen.width() - pillows.back().x() -
+                pillows.back().width() >=
+            static_cast<TerminalScreen::Coordinate>(RATIO_WIDTH_PER_PILLOW))
+        {
+            const auto [nonempty_up_height, empty_height, nonempty_down_height] =
+                pillow_randomizer.heights();
+
+            pillows.emplace_back(
+                std::make_pair(game_screen.start_val_x() + game_screen.width(),
+                               pillow_randomizer.y()),
+                pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
+                empty_height,
+                std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
+                COLOR_GREEN);
+        }
+
         for (auto &pillow : pillows)
         {
             pillow.set_x(pillow.x() - 1);
             if (pillow.x() + pillow.width() < game_screen.start_val_x())
             {
-                pillow.set_x(game_screen.start_val_x() + game_screen.width());
+                pillows.pop_front();
             }
         }
         if (!dead)
@@ -112,7 +242,7 @@ int main()
             game_screen.Update();
         }
 
-        fps_tick(FPS);
+        FPSTick(FPS);
     }
 
     return dead;

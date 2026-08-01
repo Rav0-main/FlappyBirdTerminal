@@ -68,6 +68,15 @@ TerminalScreen &TerminalScreen::operator<<(const IDrawable<TerminalColor> &shape
     return *this;
 }
 
+TerminalScreen &TerminalScreen::operator<<(const char *msg)
+{
+    for (; *msg; ++msg)
+    {
+        Draw(*msg);
+    }
+    return *this;
+}
+
 void TerminalScreen::SetCursorAbsolute(const SizeParam abs_x, const SizeParam abs_y)
 {
     wmove(window_, abs_y, abs_x);

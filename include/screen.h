@@ -108,6 +108,7 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     TerminalScreen &operator<<(const TerminalColor &color);
     TerminalScreen &operator<<(const char symbol);
     TerminalScreen &operator<<(const IDrawable<TerminalColor> &shape);
+    TerminalScreen &operator<<(const char *msg);
 
     void SetCursor(const Coordinate x, const Coordinate y) override;
     void SetCursorStartVals() override;
