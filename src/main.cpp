@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <stdexcept>
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
@@ -9,79 +10,52 @@
 #include "screen.h"
 #include "screen_rectangle.h"
 
-/*
- * fix generating: problem: pillow_real_up_empty_range and pillow_real_down_empty_range can be
- * overflow of values.
- */
 class PillowRandomManager
 {
    private:
     Randomizer<TerminalScreen::Coordinate> y_;
-    Randomizer<TerminalScreen::SizeParam> absolute_height_;
     Randomizer<TerminalScreen::SizeParam> width_;
     Randomizer<unsigned int> nonempty_up_height_ratio_;
     Randomizer<unsigned int> empty_height_ratio_;
     Randomizer<unsigned int> nonempty_down_height_ratio_;
 
-    const TerminalScreen::SizeParam screen_start_y_, screen_end_y_;
+    Randomizer<TerminalScreen::SizeParam> down_empty_height_{PILLOW_DOWN_EMPTY_RANGE.first,
+                                                             PILLOW_DOWN_EMPTY_RANGE.second};
 
-    Randomizer<TerminalScreen::SizeParam> GetAbsoluteHeightRandomizer(
-        const TerminalScreen &game_screen)
-    {
-        if (game_screen.height() >=
-            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + 3)
-        {
-            return Randomizer<TerminalScreen::SizeParam>(
-                game_screen.height() - PILLOW_UP_EMPTY_RANGE.second -
-                    PILLOW_DOWN_EMPTY_RANGE.second,
-                game_screen.height() - PILLOW_UP_EMPTY_RANGE.first - PILLOW_DOWN_EMPTY_RANGE.first);
-        }
-        return Randomizer<TerminalScreen::SizeParam>(
-            game_screen.height() - PILLOW_UP_EMPTY_RANGE.first - PILLOW_DOWN_EMPTY_RANGE.first,
-            game_screen.height());
-    }
+    const TerminalScreen::SizeParam screen_height_;
 
    public:
     PillowRandomManager(const TerminalScreen &game_screen)
         : y_(game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.first,
              game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.second),
-          absolute_height_(GetAbsoluteHeightRandomizer(game_screen)),
 
           width_(PILLOW_WIDTH_RANGE.first, PILLOW_WIDTH_RANGE.second),
 
           nonempty_up_height_ratio_(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first,
                                     PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second),
 
-          empty_height_ratio_(PILLOW_EMPTY_RATIOS_RANGE.first, PILLOW_EMPTY_RATIOS_RANGE.second),
+          empty_height_ratio_(PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.first,
+                              PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.second),
 
           nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
                                       PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second),
-          screen_start_y_(game_screen.start_val_y()),
-          screen_end_y_(game_screen.start_val_y() + game_screen.height() - 1)
+          screen_height_(game_screen.height())
     {
+        if (screen_height_ <
+            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + HEIGHT_MIN)
+        {
+            throw std::out_of_range(
+                "Screeen height must be > PILLOW_UP_EMPTY_RANGE.second + "
+                "PILLOW_DOWN_EMPTY_RANGE.second + HEIGHT_MIN.");
+        }
     }
 
-    TerminalScreen::Coordinate y(const TerminalScreen::SizeParam H)
-    {
-        unsigned short max_reps = 5;
-        auto y = y_();
-
-        while (max_reps > 0 && y + static_cast<TerminalScreen::Coordinate>(H) > screen_end_y_)
-        {
-            y = y_();
-            --max_reps;
-        }
-        if (y + static_cast<TerminalScreen::Coordinate>(H) > screen_end_y_)
-        {
-            return screen_start_y_;
-        }
-        return y;
-    }
+    TerminalScreen::Coordinate y() { return y_(); }
     TerminalScreen::SizeParam width() { return width_(); }
 
-    std::array<TerminalScreen::SizeParam, 3> heights()
+    std::array<TerminalScreen::SizeParam, 3> heights(const TerminalScreen::SizeParam y)
     {
-        const auto H = absolute_height_();
+        const auto H = screen_height_ - y - down_empty_height_() + 1;
         const auto Hd = static_cast<double>(H);
 
         const auto i = nonempty_up_height_ratio_();
@@ -150,12 +124,12 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
     TerminalScreen::SizeParam sum_width_prev = 0;
     for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
     {
+        const auto y = pillow_randomizer.y();
         const auto [nonempty_up_height, empty_height, nonempty_down_height] =
-            pillow_randomizer.heights();
+            pillow_randomizer.heights(y);
+
         pillows.emplace_back(
-            std::make_pair(
-                x_prev + i * RATIO_WIDTH_PER_PILLOW + sum_width_prev,
-                pillow_randomizer.y(nonempty_up_height + empty_height + nonempty_down_height)),
+            std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW + sum_width_prev, y),
             pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
             empty_height,
             std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
@@ -199,9 +173,6 @@ int main()
      * Do cycle buffer (for remove memory allocations on every delete pillow).
      */
     std::deque<Pillow<TerminalColor>> pillows;
-    /*
-     * fix starting spawning
-     */
     GeneratePillows(pillows, game_screen, pillow_randomizer);
     TerminalScreen::GameModeOn();
 
@@ -242,6 +213,7 @@ int main()
                 case 'q':
                 case 'Q':
                     run = false;
+                    break;
             }
         }
 
@@ -249,13 +221,12 @@ int main()
                 pillows.back().width() >=
             static_cast<TerminalScreen::Coordinate>(RATIO_WIDTH_PER_PILLOW))
         {
+            const auto y = pillow_randomizer.y();
             const auto [nonempty_up_height, empty_height, nonempty_down_height] =
-                pillow_randomizer.heights();
+                pillow_randomizer.heights(y);
 
             pillows.emplace_back(
-                std::make_pair(
-                    game_screen.start_val_x() + game_screen.width(),
-                    pillow_randomizer.y(nonempty_up_height + empty_height + nonempty_down_height)),
+                std::make_pair(game_screen.start_val_x() + game_screen.width(), y),
                 pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
                 empty_height,
                 std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
@@ -275,17 +246,15 @@ int main()
         }
 
         game_screen.Clear();
-
         for (const auto &pillow : pillows)
         {
             game_screen << pillow;
         }
-
         game_screen << bird;
         game_screen.Update();
 
         FPSTick(FPS);
     }
 
-    return pillows_stopped;
+    return 0;
 }
