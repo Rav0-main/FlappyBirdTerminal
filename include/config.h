@@ -10,32 +10,32 @@ static_assert(FPS != 0U);
 /*
  * RATIO_WIDTH = SCREEN_WIDTH / STD_SCREEN_WIDTH
  */
-inline constexpr double RATIO_WIDTH = 0.82;
-static_assert(RATIO_WIDTH > 0.0 && RATIO_WIDTH < 1.0);
+inline constexpr double RATIO_SCREEN_WIDTH = 0.82;
+static_assert(RATIO_SCREEN_WIDTH > 0.0 && RATIO_SCREEN_WIDTH < 1.0);
 
 /*
  * RATIO_HEIGHT = SCREEN_WIDTH / STD_SCREEN_HEIGHT
  */
-inline constexpr double RATIO_HEIGHT = 0.62;
-static_assert(RATIO_HEIGHT > 0.0 && RATIO_HEIGHT < 1.0);
+inline constexpr double RATIO_SCREEN_HEIGHT = 0.62;
+static_assert(RATIO_SCREEN_HEIGHT > 0.0 && RATIO_SCREEN_HEIGHT < 1.0);
 
 /*
  * Minimum screen height for launch game
  */
-inline constexpr unsigned int HEIGHT_MIN = 3;
-static_assert(HEIGHT_MIN >= 3);
+inline constexpr unsigned int SCREEN_MIN_HEIGHT = 3;
+static_assert(SCREEN_MIN_HEIGHT >= 3);
 
 /*
  * Screen height for filling all terminal height for game
  */
-inline constexpr unsigned int HEIGHT_CRITICAL = 6;
-static_assert(HEIGHT_CRITICAL >= HEIGHT_MIN);
+inline constexpr unsigned int SCREEN_CRITICAL_HEIGHT = 6;
+static_assert(SCREEN_CRITICAL_HEIGHT >= SCREEN_MIN_HEIGHT);
 
 /*
  * Visual of bird at screen
  */
-inline constexpr std::string BIRD_PICTURE = "<->";
-static_assert(BIRD_PICTURE.length() >= 2U);
+inline constexpr std::string BIRD_PICTURE = "<>";
+static_assert(BIRD_PICTURE.length() > 0U);
 
 /*
  * RATIO_BIRD_POSITION_X = BIRD_X / SCREEN_WIDTH
@@ -111,7 +111,7 @@ inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_DOWN_HEIG
 static_assert(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first <=
               PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second);
 
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_WIDTH_RANGE = {4U, 10U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_WIDTH_RANGE = {4U, 9U};
 static_assert(PILLOW_WIDTH_RANGE.first <= PILLOW_WIDTH_RANGE.second &&
               PILLOW_WIDTH_RANGE.second < RATIO_WIDTH_PER_PILLOW);
 

@@ -22,7 +22,7 @@ class PillowRandomManager
     Randomizer<TerminalScreen::SizeParam> down_empty_height_{PILLOW_DOWN_EMPTY_RANGE.first,
                                                              PILLOW_DOWN_EMPTY_RANGE.second};
 
-    const TerminalScreen::SizeParam screen_height_;
+    const TerminalScreen::SizeParam screen_start_val_y_, screen_height_;
 
    public:
     PillowRandomManager(const TerminalScreen &game_screen)
@@ -39,10 +39,11 @@ class PillowRandomManager
 
           nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
                                       PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second),
+          screen_start_val_y_(game_screen.start_val_y()),
           screen_height_(game_screen.height())
     {
         if (screen_height_ <
-            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + HEIGHT_MIN)
+            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + SCREEN_MIN_HEIGHT)
         {
             throw std::out_of_range(
                 "Screeen height must be > PILLOW_UP_EMPTY_RANGE.second + "
@@ -55,7 +56,7 @@ class PillowRandomManager
 
     std::array<TerminalScreen::SizeParam, 3> heights(const TerminalScreen::SizeParam y)
     {
-        const auto H = screen_height_ - y - down_empty_height_() + 1;
+        const auto H = screen_height_ - y - screen_start_val_y_ - down_empty_height_() + 1;
         const auto Hd = static_cast<double>(H);
 
         const auto i = nonempty_up_height_ratio_();
@@ -102,10 +103,10 @@ class PillowRandomManager
 
 static inline TerminalScreen GetGameScreen(const TerminalScreen &std_screen)
 {
-    TerminalScreen::SizeParam width = std_screen.width() * RATIO_WIDTH;
-    TerminalScreen::SizeParam height = std_screen.height() * RATIO_HEIGHT;
+    TerminalScreen::SizeParam width = std_screen.width() * RATIO_SCREEN_WIDTH;
+    TerminalScreen::SizeParam height = std_screen.height() * RATIO_SCREEN_HEIGHT;
 
-    if (height > HEIGHT_CRITICAL)
+    if (height > SCREEN_CRITICAL_HEIGHT)
     {
         return TerminalScreen(
             {width, height}, {(std_screen.width() - width) / 2, (std_screen.height() - height) / 2},
@@ -149,7 +150,7 @@ int main()
     TerminalScreen std_screen = TerminalScreen::Init();
     TerminalScreen game_screen = GetGameScreen(std_screen);
 
-    if (game_screen.height() < HEIGHT_MIN)
+    if (game_screen.height() < SCREEN_MIN_HEIGHT)
     {
         std_screen << "You have very small screen height :(";
         getch();
@@ -170,7 +171,7 @@ int main()
 
     PillowRandomManager pillow_randomizer(game_screen);
     /*
-     * Do cycle buffer (for remove memory allocations on every delete pillow).
+     * Do cycle buffer (for remove memory allocations on every push/pop pillow).
      */
     std::deque<Pillow<TerminalColor>> pillows;
     GeneratePillows(pillows, game_screen, pillow_randomizer);
@@ -182,6 +183,7 @@ int main()
 
     bool run = true;
     bool pillows_stopped = false;
+    bool bird_dead = false;
 
     while (run)
     {
@@ -191,23 +193,27 @@ int main()
             switch (key)
             {
                 case 'w':
-                    bird.set_y(bird.y() - 1);
+                    if (!bird_dead)
+                        bird.set_y(bird.y() - 1);
                     break;
 
                 case 's':
-                    bird.set_y(bird.y() + 1);
+                    if (!bird_dead)
+                        bird.set_y(bird.y() + 1);
                     break;
 
                 case 'd':
-                    bird.set_x(bird.x() + 1);
+                    if (!bird_dead)
+                        bird.set_x(bird.x() + 1);
                     break;
 
                 case 'a':
-                    bird.set_x(bird.x() - 1);
+                    if (!bird_dead)
+                        bird.set_x(bird.x() - 1);
                     break;
 
                 case ' ':
-                    pillows_stopped = !pillows_stopped;
+                    pillows_stopped = !pillows_stopped || bird_dead;
                     break;
 
                 case 'q':
@@ -233,12 +239,28 @@ int main()
                 COLOR_GREEN);
         }
 
+        for (const auto &p : pillows)
+        {
+            if (p.HasCollisionWith(bird))
+            {
+                bird_dead = true;
+                pillows_stopped = true;
+            }
+        }
+
+        if (!bird_dead)
+        {
+            bird_dead = bird.y() == game_screen.start_val_y() ||
+                        bird.y() == game_screen.start_val_y() + game_screen.height() - 1;
+            pillows_stopped = bird_dead;
+        }
+
         if (!pillows_stopped)
         {
-            for (auto &pillow : pillows)
+            for (auto &p : pillows)
             {
-                pillow.set_x(pillow.x() - 1);
-                if (pillow.x() + pillow.width() < game_screen.start_val_x())
+                p.set_x(p.x() - 1);
+                if (p.x() + p.width() < game_screen.start_val_x())
                 {
                     pillows.pop_front();
                 }
@@ -246,9 +268,9 @@ int main()
         }
 
         game_screen.Clear();
-        for (const auto &pillow : pillows)
+        for (const auto &p : pillows)
         {
-            game_screen << pillow;
+            game_screen << p;
         }
         game_screen << bird;
         game_screen.Update();
