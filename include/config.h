@@ -10,13 +10,13 @@ static_assert(FPS != 0U);
 /*
  * RATIO_WIDTH = SCREEN_WIDTH / STD_SCREEN_WIDTH
  */
-inline constexpr double RATIO_SCREEN_WIDTH = 0.82;
+inline constexpr double RATIO_SCREEN_WIDTH = 0.80;
 static_assert(RATIO_SCREEN_WIDTH > 0.0 && RATIO_SCREEN_WIDTH < 1.0);
 
 /*
  * RATIO_HEIGHT = SCREEN_WIDTH / STD_SCREEN_HEIGHT
  */
-inline constexpr double RATIO_SCREEN_HEIGHT = 0.62;
+inline constexpr double RATIO_SCREEN_HEIGHT = 0.74;
 static_assert(RATIO_SCREEN_HEIGHT > 0.0 && RATIO_SCREEN_HEIGHT < 1.0);
 
 /*
@@ -28,7 +28,7 @@ static_assert(SCREEN_MIN_HEIGHT >= 3);
 /*
  * Screen height for filling all terminal height for game
  */
-inline constexpr unsigned int SCREEN_CRITICAL_HEIGHT = 6;
+inline constexpr unsigned int SCREEN_CRITICAL_HEIGHT = 5;
 static_assert(SCREEN_CRITICAL_HEIGHT >= SCREEN_MIN_HEIGHT);
 
 /*
@@ -103,7 +103,7 @@ inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_UP_HEIGHT
 static_assert(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first <=
               PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second);
 
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {2U, 4U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {1U, 3U};
 static_assert(PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.first <= PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.second);
 
 inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE = {

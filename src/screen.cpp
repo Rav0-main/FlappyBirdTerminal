@@ -1,4 +1,5 @@
 #include "screen.h"
+#include "text.h"
 
 void TerminalScreen::Draw(const char symbol)
 {
@@ -70,11 +71,7 @@ TerminalScreen &TerminalScreen::operator<<(const IDrawable<TerminalColor> &shape
 
 TerminalScreen &TerminalScreen::operator<<(const char *msg)
 {
-    for (; *msg; ++msg)
-    {
-        Draw(*msg);
-    }
-    return *this;
+    return (*this) << Text<TerminalColor>(msg);
 }
 
 void TerminalScreen::SetCursorAbsolute(const SizeParam abs_x, const SizeParam abs_y)

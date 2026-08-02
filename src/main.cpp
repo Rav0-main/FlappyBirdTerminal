@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <format>
 #include <stdexcept>
 #include "bird.h"
 #include "config.h"
@@ -9,6 +10,7 @@
 #include "randomizer.h"
 #include "screen.h"
 #include "screen_rectangle.h"
+#include "text.h"
 
 class PillowRandomManager
 {
@@ -101,7 +103,7 @@ class PillowRandomManager
     }
 };
 
-static inline TerminalScreen GetGameScreen(const TerminalScreen &std_screen)
+static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
 {
     TerminalScreen::SizeParam width = std_screen.width() * RATIO_SCREEN_WIDTH;
     TerminalScreen::SizeParam height = std_screen.height() * RATIO_SCREEN_HEIGHT;
@@ -148,7 +150,7 @@ static inline void FPSTick(const unsigned short fps)
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
-    TerminalScreen game_screen = GetGameScreen(std_screen);
+    TerminalScreen game_screen = GetGameScreenIn(std_screen);
 
     if (game_screen.height() < SCREEN_MIN_HEIGHT)
     {
@@ -183,37 +185,18 @@ int main()
 
     bool run = true;
     bool pillows_stopped = false;
-    bool bird_dead = false;
-
+    unsigned long long score = 0ULL;
     while (run)
     {
         int key = getch();
         if (key != ERR)
         {
+            bird.HandlePressedKey(key);
+
             switch (key)
             {
-                case 'w':
-                    if (!bird_dead)
-                        bird.set_y(bird.y() - 1);
-                    break;
-
-                case 's':
-                    if (!bird_dead)
-                        bird.set_y(bird.y() + 1);
-                    break;
-
-                case 'd':
-                    if (!bird_dead)
-                        bird.set_x(bird.x() + 1);
-                    break;
-
-                case 'a':
-                    if (!bird_dead)
-                        bird.set_x(bird.x() - 1);
-                    break;
-
                 case ' ':
-                    pillows_stopped = !pillows_stopped || bird_dead;
+                    pillows_stopped = !pillows_stopped || !bird.is_alive();
                     break;
 
                 case 'q':
@@ -238,31 +221,42 @@ int main()
                 std::make_tuple(PILLOW_START_PICTURE, PILLOW_MIDDLE_PICTURE, PILLOW_END_PICTURE),
                 COLOR_GREEN);
         }
+        if (!pillows_stopped)
+        {
+            for (auto &p : pillows)
+            {
+                p.MoveLeft();
+                if (p.x() + p.width() < game_screen.start_val_x())
+                {
+                    pillows.pop_front();
+                }
+            }
+        }
 
         for (const auto &p : pillows)
         {
             if (p.HasCollisionWith(bird))
             {
-                bird_dead = true;
+                bird.Kill();
                 pillows_stopped = true;
             }
         }
 
-        if (!bird_dead)
+        if (bird.is_alive() && (bird.y() == game_screen.start_val_y() ||
+                                bird.y() == game_screen.start_val_y() + game_screen.height() - 1))
         {
-            bird_dead = bird.y() == game_screen.start_val_y() ||
-                        bird.y() == game_screen.start_val_y() + game_screen.height() - 1;
-            pillows_stopped = bird_dead;
+            bird.Kill();
+            pillows_stopped = true;
         }
 
-        if (!pillows_stopped)
+        if (bird.is_alive())
         {
-            for (auto &p : pillows)
+            for (const auto &p : pillows)
             {
-                p.set_x(p.x() - 1);
-                if (p.x() + p.width() < game_screen.start_val_x())
+                if (p.x() + p.width() == bird.x())
                 {
-                    pillows.pop_front();
+                    ++score;
+                    break;
                 }
             }
         }
@@ -272,6 +266,9 @@ int main()
         {
             game_screen << p;
         }
+        game_screen << Text<TerminalColor>(std::format("score: {}", score).c_str(),
+                                           {COLOR_WHITE, game_screen.default_bgcolor()}, {0, 0});
+
         game_screen << bird;
         game_screen.Update();
 

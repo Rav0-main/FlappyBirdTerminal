@@ -57,6 +57,7 @@ class Pillow : public ICollision, public IDrawable<Color>
     {
         return other.HasCollisionWith(*this);
     }
+
     bool HasCollisionWith(const Bird<Color> &bird) const
     {
         const auto bird_end_x =
@@ -80,6 +81,8 @@ class Pillow : public ICollision, public IDrawable<Color>
         }
         return false;
     }
+
+    void MoveLeft() noexcept { --x_; }
 
     void DrawOn(IScreen2D<Color> &screen) const override
     {
