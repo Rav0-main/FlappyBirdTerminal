@@ -4,27 +4,36 @@
 #include <stdexcept>
 #include "icollision.h"
 #include "idrawable.h"
+#include "irectangle2d.h"
 #include "iscreen2d.h"
 
 template <typename Color>
-class Bird : public ICollision, public IDrawable<Color>
+class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D
 {
    private:
-    IScreen2D<Color>::Coordinate x_, y_;
+    Coordinate x_, y_;
     bool is_dead_;
     const std::string picture_;
     const Color fg_color_;
 
    public:
-    size_t length() const noexcept { return picture_.length(); }
-    bool is_alive() const noexcept { return !is_dead_; }
+    Coordinate start_val_x() const noexcept override { return x_; }
+    Coordinate start_val_y() const noexcept override { return y_; }
+    Coordinate end_val_x() const noexcept override
+    {
+        return x_ + static_cast<Coordinate>(width()) - 1;
+    }
+    Coordinate end_val_y() const noexcept override
+    {
+        return y_ + static_cast<Coordinate>(height()) - 1;
+    }
+    SizeParam width() const noexcept override { return picture_.length(); }
+    SizeParam height() const noexcept override { return 1U; }
+
+    bool IsAlive() const noexcept { return !is_dead_; }
 
     // :(
     void Kill() noexcept { is_dead_ = true; }
-    void set_x(const IScreen2D<Color>::Coordinate new_x) noexcept { x_ = new_x; }
-    void set_y(const IScreen2D<Color>::Coordinate new_y) noexcept { y_ = new_y; }
-    IScreen2D<Color>::Coordinate x() const noexcept { return x_; }
-    IScreen2D<Color>::Coordinate y() const noexcept { return y_; }
 
     Bird(const std::pair<typename IScreen2D<Color>::Coordinate,
                          typename IScreen2D<Color>::Coordinate> &start_coords,
@@ -36,9 +45,13 @@ class Bird : public ICollision, public IDrawable<Color>
           picture_(picture),
           fg_color_(color)
     {
-        if (picture_.length() < 2)
+        if (picture_.length() == 0)
         {
-            throw std::out_of_range("Picture length must be >= 2.");
+            throw std::out_of_range("Picture length must be > 0.");
+        }
+        if (picture_.find('\n') != picture_.npos)
+        {
+            throw std::invalid_argument("Picture must be height == 1 (don't include '\n')");
         }
     }
 

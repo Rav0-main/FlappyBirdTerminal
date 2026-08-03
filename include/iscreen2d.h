@@ -1,20 +1,16 @@
 #ifndef ISCREEN_H
 #define ISCREEN_H
 
+#include "irectangle2d.h"
+
 template <typename Color>
-struct IScreen2D
+struct IScreen2D : public IRectangle2D
 {
-    using SizeParam = unsigned short int;
-    using Coordinate = short int;
-    using DeltaVal = unsigned short int;
+    using DeltaVal = unsigned short;
 
     // Settings
-    virtual SizeParam width() const noexcept = 0;
-    virtual SizeParam height() const noexcept = 0;
     virtual DeltaVal delta_x() const noexcept = 0;
     virtual DeltaVal delta_y() const noexcept = 0;
-    virtual Coordinate start_val_x() const noexcept = 0;
-    virtual Coordinate start_val_y() const noexcept = 0;
 
     // Drawing
     virtual void Draw(const char symbol) = 0;

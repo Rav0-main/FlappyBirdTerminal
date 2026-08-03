@@ -19,11 +19,6 @@ static_assert(sizeof(TerminalColor) >= sizeof(short),
 
 class TerminalScreen : public IScreen2D<TerminalColor>
 {
-   public:
-    using SizeParam = typename IScreen2D<TerminalColor>::SizeParam;
-    using DeltaVal = typename IScreen2D<TerminalColor>::DeltaVal;
-    using Coordinate = typename IScreen2D<TerminalColor>::Coordinate;
-
    private:
     static inline std::unordered_map<uint32_t, decltype(COLOR_PAIRS)> color_pairs;
     const SizeParam width_, height_;
@@ -89,6 +84,14 @@ class TerminalScreen : public IScreen2D<TerminalColor>
         Update();
     }
 
+    Coordinate end_val_x() const noexcept override
+    {
+        return start_val_x_ + static_cast<Coordinate>(width_) - 1;
+    }
+    Coordinate end_val_y() const noexcept override
+    {
+        return start_val_y_ + static_cast<Coordinate>(height_) - 1;
+    }
     SizeParam width() const noexcept override { return width_; }
     SizeParam height() const noexcept override { return height_; }
     DeltaVal delta_x() const noexcept override { return delta_x_; }

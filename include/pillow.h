@@ -1,33 +1,44 @@
 #ifndef PILLOW_H
 #define PILLOW_H
 
+#include <array>
 #include <stdexcept>
-#include <tuple>
 #include "bird.h"
 #include "icollision.h"
 #include "idrawable.h"
+#include "irectangle2d.h"
 #include "iscreen2d.h"
 
 template <typename Color>
-class Pillow : public ICollision, public IDrawable<Color>
+class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
 {
    private:
     // Coordinates of left up vertex.
-    IScreen2D<Color>::Coordinate x_, y_;
-    const IScreen2D<Color>::SizeParam width_;
+    Coordinate x_, y_;
+    const SizeParam width_;
 
-    const IScreen2D<Color>::SizeParam non_empty_up_height_, empty_height_, non_empty_down_height_;
+    const SizeParam non_empty_up_height_, empty_height_, non_empty_down_height_;
 
     const char start_symbol_, middle_symbol_, end_symbol_;
     const Color fg_color_;
 
    public:
-    typename IScreen2D<Color>::Coordinate x() const noexcept { return x_; }
-    typename IScreen2D<Color>::Coordinate y() const noexcept { return y_; }
+    Coordinate start_val_x() const noexcept override { return x_; }
+    Coordinate start_val_y() const noexcept override { return y_; }
+    Coordinate end_val_x() const noexcept override
+    {
+        return x_ + static_cast<Coordinate>(width_) - 1;
+    }
+    Coordinate end_val_y() const noexcept override
+    {
+        return y_ + static_cast<Coordinate>(height()) - 1;
+    }
 
-    void set_x(const typename IScreen2D<Color>::Coordinate new_x) noexcept { x_ = new_x; }
-
-    typename IScreen2D<Color>::SizeParam width() const noexcept { return width_; }
+    SizeParam width() const noexcept override { return width_; }
+    SizeParam height() const noexcept override
+    {
+        return non_empty_up_height_ + empty_height_ + non_empty_down_height_;
+    }
 
     Pillow(const std::pair<typename IScreen2D<Color>::Coordinate,
                            typename IScreen2D<Color>::Coordinate> &start_coords,
@@ -35,7 +46,7 @@ class Pillow : public ICollision, public IDrawable<Color>
            const std::pair<typename IScreen2D<Color>::SizeParam,
                            typename IScreen2D<Color>::SizeParam> &non_empty_heights,
            const typename IScreen2D<Color>::SizeParam empty_height,
-           const std::tuple<char, char, char> &symbols,
+           const std::array<char, 3> &symbols,
            const Color &color)
         : x_(start_coords.first),
           y_(start_coords.second),
@@ -43,9 +54,9 @@ class Pillow : public ICollision, public IDrawable<Color>
           non_empty_up_height_(non_empty_heights.first),
           empty_height_(empty_height),
           non_empty_down_height_(non_empty_heights.second),
-          start_symbol_(std::get<0>(symbols)),
-          middle_symbol_(std::get<1>(symbols)),
-          end_symbol_(std::get<2>(symbols)),
+          start_symbol_(symbols.at(0)),
+          middle_symbol_(symbols.at(1)),
+          end_symbol_(symbols.at(2)),
           fg_color_(color)
     {
         if (width_ < 2)
@@ -60,23 +71,23 @@ class Pillow : public ICollision, public IDrawable<Color>
 
     bool HasCollisionWith(const Bird<Color> &bird) const
     {
-        const auto bird_end_x =
-            bird.x() + static_cast<IScreen2D<Color>::Coordinate>(bird.length()) - 1;
-        if (bird_end_x < x_)
+        if (bird.end_val_x() < x_)
         {
             return false;
         }
-        if (x_ == bird_end_x)
+        if (x_ == bird.end_val_x())
         {
-            return (bird.y() >= y_ && bird.y() < y_ + non_empty_up_height_) ||
-                   (bird.y() >= y_ + non_empty_up_height_ + empty_height_ &&
-                    bird.y() < y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
+            return (bird.start_val_y() >= y_ && bird.start_val_y() < y_ + non_empty_up_height_) ||
+                   (bird.start_val_y() >= y_ + non_empty_up_height_ + empty_height_ &&
+                    bird.start_val_y() <
+                        y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
         }
-        if (bird.x() >= x_ && bird_end_x <= x_ + width_)
+        if (bird.start_val_x() >= x_ && bird.end_val_x() <= x_ + width_)
         {
-            return bird.y() == y_ || bird.y() == y_ + non_empty_up_height_ - 1 ||
-                   bird.y() == y_ + non_empty_up_height_ + empty_height_ ||
-                   bird.y() ==
+            return bird.start_val_y() == y_ ||
+                   bird.start_val_y() == y_ + non_empty_up_height_ - 1 ||
+                   bird.start_val_y() == y_ + non_empty_up_height_ + empty_height_ ||
+                   bird.start_val_y() ==
                        y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_ - 1;
         }
         return false;
