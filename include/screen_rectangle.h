@@ -23,10 +23,10 @@ class ScreenRectangle : public IDrawable<Color>
 
         typename IScreen2D<Color>::Coordinate start_x =
             static_cast<typename IScreen2D<Color>::Coordinate>(rectangle_screen_.delta_x()) +
-            main_screen.start_val_x();
+            main_screen.start_x();
         typename IScreen2D<Color>::Coordinate start_y =
             static_cast<typename IScreen2D<Color>::Coordinate>(rectangle_screen_.delta_y()) +
-            main_screen.start_val_y();
+            main_screen.start_y();
 
         if (start_y > 0)
         {

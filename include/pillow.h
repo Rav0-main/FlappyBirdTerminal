@@ -6,11 +6,12 @@
 #include "bird.h"
 #include "icollision.h"
 #include "idrawable.h"
+#include "imovable.h"
 #include "irectangle2d.h"
 #include "iscreen2d.h"
 
 template <typename Color>
-class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
+class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, public IMovable
 {
    private:
     // Coordinates of left up vertex.
@@ -23,13 +24,10 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
     const Color fg_color_;
 
    public:
-    Coordinate start_val_x() const noexcept override { return x_; }
-    Coordinate start_val_y() const noexcept override { return y_; }
-    Coordinate end_val_x() const noexcept override
-    {
-        return x_ + static_cast<Coordinate>(width_) - 1;
-    }
-    Coordinate end_val_y() const noexcept override
+    Coordinate start_x() const noexcept override { return x_; }
+    Coordinate start_y() const noexcept override { return y_; }
+    Coordinate end_x() const noexcept override { return x_ + static_cast<Coordinate>(width_) - 1; }
+    Coordinate end_y() const noexcept override
     {
         return y_ + static_cast<Coordinate>(height()) - 1;
     }
@@ -71,39 +69,38 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
 
     bool HasCollisionWith(const Bird<Color> &bird) const
     {
-        if (bird.end_val_x() < x_)
+        if (bird.end_x() < x_)
         {
             return false;
         }
-        if (x_ == bird.end_val_x())
+        if (x_ == bird.end_x())
         {
-            return (bird.start_val_y() >= y_ && bird.start_val_y() < y_ + non_empty_up_height_) ||
-                   (bird.start_val_y() >= y_ + non_empty_up_height_ + empty_height_ &&
-                    bird.start_val_y() <
+            return (bird.start_y() >= y_ && bird.start_y() < y_ + non_empty_up_height_) ||
+                   (bird.start_y() >= y_ + non_empty_up_height_ + empty_height_ &&
+                    bird.start_y() <
                         y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
         }
-        if (bird.start_val_x() >= x_ && bird.end_val_x() <= x_ + width_)
+        if (bird.start_x() >= x_ && bird.end_x() <= x_ + width_)
         {
-            return bird.start_val_y() == y_ ||
-                   bird.start_val_y() == y_ + non_empty_up_height_ - 1 ||
-                   bird.start_val_y() == y_ + non_empty_up_height_ + empty_height_ ||
-                   bird.start_val_y() ==
+            return bird.start_y() == y_ || bird.start_y() == y_ + non_empty_up_height_ - 1 ||
+                   bird.start_y() == y_ + non_empty_up_height_ + empty_height_ ||
+                   bird.start_y() ==
                        y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_ - 1;
         }
         return false;
     }
 
-    void MoveLeft() noexcept { --x_; }
+    void Move() override { --x_; }
 
     void DrawOn(IScreen2D<Color> &screen) const override
     {
-        const auto screen_end_x = screen.start_val_x() + screen.width() - 1;
+        const auto screen_end_x = screen.start_x() + screen.width() - 1;
 
         if (screen_end_x < x_)
         {
             return;
         }
-        else if (x_ + width_ < screen.start_val_x())
+        else if (x_ + width_ < screen.start_x())
         {
             return;
         }
@@ -111,20 +108,20 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
         // up non empty.
         for (typename IScreen2D<Color>::SizeParam i = 0; i < non_empty_up_height_; ++i)
         {
-            if (x_ >= screen.start_val_x())
+            if (x_ >= screen.start_x())
             {
                 screen.SetCursor(x_, y_ + i);
                 screen.Draw(start_symbol_);
             }
             else
             {
-                screen.SetCursor(screen.start_val_x(), y_ + i);
+                screen.SetCursor(screen.start_x(), y_ + i);
             }
 
             typename IScreen2D<Color>::SizeParam j = 1;
             while (j + 1 < width_ && x_ + j <= screen_end_x)
             {
-                if (x_ + j >= screen.start_val_x())
+                if (x_ + j >= screen.start_x())
                 {
                     screen.Draw(middle_symbol_);
                 }
@@ -140,21 +137,20 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D
         // down non empty.
         for (typename IScreen2D<Color>::SizeParam i = 0; i < non_empty_down_height_; ++i)
         {
-            if (x_ >= screen.start_val_x())
+            if (x_ >= screen.start_x())
             {
                 screen.SetCursor(x_, y_ + non_empty_up_height_ + empty_height_ + i);
                 screen.Draw(start_symbol_);
             }
             else
             {
-                screen.SetCursor(screen.start_val_x(),
-                                 y_ + non_empty_up_height_ + empty_height_ + i);
+                screen.SetCursor(screen.start_x(), y_ + non_empty_up_height_ + empty_height_ + i);
             }
 
             typename IScreen2D<Color>::SizeParam j = 1;
             while (j + 1 < width_ && x_ + j <= screen_end_x)
             {
-                if (x_ + j >= screen.start_val_x())
+                if (x_ + j >= screen.start_x())
                 {
                     screen.Draw(middle_symbol_);
                 }

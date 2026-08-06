@@ -1,5 +1,4 @@
-/*
- * Screen based on ncurses.
+/* Screen based on ncurses.
  */
 #ifndef SCREEN_H
 #define SCREEN_H
@@ -23,7 +22,7 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     static inline std::unordered_map<uint32_t, decltype(COLOR_PAIRS)> color_pairs;
     const SizeParam width_, height_;
     const DeltaVal delta_x_, delta_y_;
-    const Coordinate start_val_x_, start_val_y_;
+    const Coordinate start_x_, start_y_;
     const TerminalColor default_fgcolor_, default_bgcolor_;
     TerminalColor current_fgcolor_, current_bgcolor_;
     WINDOW *window_;
@@ -70,8 +69,8 @@ class TerminalScreen : public IScreen2D<TerminalColor>
           height_(getmaxy(window)),
           delta_x_(delties.first),
           delta_y_(delties.second),
-          start_val_x_(start_vals.first),
-          start_val_y_(start_vals.second),
+          start_x_(start_vals.first),
+          start_y_(start_vals.second),
           default_fgcolor_(colors.first),
           default_bgcolor_(colors.second),
           current_fgcolor_(default_fgcolor_),
@@ -84,20 +83,20 @@ class TerminalScreen : public IScreen2D<TerminalColor>
         Update();
     }
 
-    Coordinate end_val_x() const noexcept override
+    Coordinate end_x() const noexcept override
     {
-        return start_val_x_ + static_cast<Coordinate>(width_) - 1;
+        return start_x_ + static_cast<Coordinate>(width_) - 1;
     }
-    Coordinate end_val_y() const noexcept override
+    Coordinate end_y() const noexcept override
     {
-        return start_val_y_ + static_cast<Coordinate>(height_) - 1;
+        return start_y_ + static_cast<Coordinate>(height_) - 1;
     }
     SizeParam width() const noexcept override { return width_; }
     SizeParam height() const noexcept override { return height_; }
     DeltaVal delta_x() const noexcept override { return delta_x_; }
     DeltaVal delta_y() const noexcept override { return delta_y_; }
-    Coordinate start_val_x() const noexcept override { return start_val_x_; }
-    Coordinate start_val_y() const noexcept override { return start_val_y_; }
+    Coordinate start_x() const noexcept override { return start_x_; }
+    Coordinate start_y() const noexcept override { return start_y_; }
     TerminalColor default_fgcolor() const noexcept { return default_fgcolor_; }
     TerminalColor default_bgcolor() const noexcept { return default_bgcolor_; }
 

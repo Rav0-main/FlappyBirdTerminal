@@ -24,12 +24,12 @@ class PillowRandomManager
     Randomizer<TerminalScreen::SizeParam> down_empty_height_{PILLOW_DOWN_EMPTY_RANGE.first,
                                                              PILLOW_DOWN_EMPTY_RANGE.second};
 
-    const TerminalScreen::SizeParam screen_start_val_y_, screen_height_;
+    const TerminalScreen::SizeParam screen_start_y_, screen_height_;
 
    public:
     PillowRandomManager(const TerminalScreen &game_screen)
-        : y_(game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.first,
-             game_screen.start_val_y() + PILLOW_UP_EMPTY_RANGE.second),
+        : y_(game_screen.start_y() + PILLOW_UP_EMPTY_RANGE.first,
+             game_screen.start_y() + PILLOW_UP_EMPTY_RANGE.second),
 
           width_(PILLOW_WIDTH_RANGE.first, PILLOW_WIDTH_RANGE.second),
 
@@ -41,7 +41,7 @@ class PillowRandomManager
 
           nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
                                       PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second),
-          screen_start_val_y_(game_screen.start_val_y()),
+          screen_start_y_(game_screen.start_y()),
           screen_height_(game_screen.height())
     {
         if (screen_height_ <
@@ -53,12 +53,12 @@ class PillowRandomManager
         }
     }
 
-    TerminalScreen::Coordinate start_val_y() { return y_(); }
+    TerminalScreen::Coordinate start_y() { return y_(); }
     TerminalScreen::SizeParam width() { return width_(); }
 
     std::array<TerminalScreen::SizeParam, 3> heights(const TerminalScreen::SizeParam y)
     {
-        const auto H = screen_height_ - y - screen_start_val_y_ - down_empty_height_() + 1;
+        const auto H = screen_height_ - y - screen_start_y_ - down_empty_height_() + 1;
         const auto Hd = static_cast<double>(H);
 
         const auto i = nonempty_up_height_ratio_();
@@ -136,7 +136,7 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
 
     for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
     {
-        const auto y = pillow_randomizer.start_val_y();
+        const auto y = pillow_randomizer.start_y();
         const auto [nonempty_up_height, empty_height, nonempty_down_height] =
             pillow_randomizer.heights(y);
 
@@ -211,42 +211,49 @@ int main()
             }
         }
 
-        if (game_screen.end_val_x() - pillows.back().end_val_x() >=
+        if (game_screen.end_x() - pillows.back().end_x() >=
             static_cast<TerminalScreen::Coordinate>(RATIO_WIDTH_PER_PILLOW))
         {
-            const auto y = pillow_randomizer.start_val_y();
+            const auto y = pillow_randomizer.start_y();
             const auto [nonempty_up_height, empty_height, nonempty_down_height] =
                 pillow_randomizer.heights(y);
 
-            pillows.emplace_back(std::make_pair(game_screen.start_val_x() + game_screen.width(), y),
+            pillows.emplace_back(std::make_pair(game_screen.start_x() + game_screen.width(), y),
                                  pillow_randomizer.width(),
                                  std::make_pair(nonempty_up_height, nonempty_down_height),
                                  empty_height, PILLOW_PICTURE, COLOR_GREEN);
         }
+        if (bird.IsAlive())
+        {
+            bird.Move();
+        }
+
         if (!pillows_stopped)
         {
             for (auto &p : pillows)
             {
-                p.MoveLeft();
-                if (p.end_val_x() < game_screen.start_val_x())
+                p.Move();
+                if (p.end_x() < game_screen.start_x())
                 {
                     pillows.pop_front();
                 }
             }
         }
 
-        for (const auto &p : pillows)
+        if (bird.IsAlive() && !pillows_stopped)
         {
-            if (p.HasCollisionWith(bird))
+            for (const auto &p : pillows)
             {
-                bird.Kill();
-                pillows_stopped = true;
+                if (p.HasCollisionWith(bird))
+                {
+                    bird.Kill();
+                    pillows_stopped = true;
+                }
             }
         }
 
-        if (bird.IsAlive() &&
-            (bird.start_val_y() == game_screen.start_val_y() ||
-             bird.start_val_y() == game_screen.start_val_y() + game_screen.height() - 1))
+        if (bird.IsAlive() && (bird.start_y() == game_screen.start_y() ||
+                               bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
         {
             bird.Kill();
             pillows_stopped = true;
@@ -256,7 +263,7 @@ int main()
         {
             for (const auto &p : pillows)
             {
-                if (p.end_val_x() + 1 == bird.start_val_x())
+                if (p.end_x() + 1 == bird.start_x())
                 {
                     ++score;
                     break;

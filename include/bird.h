@@ -4,11 +4,12 @@
 #include <stdexcept>
 #include "icollision.h"
 #include "idrawable.h"
+#include "imovable.h"
 #include "irectangle2d.h"
 #include "iscreen2d.h"
 
 template <typename Color>
-class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D
+class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, public IMovable
 {
    private:
     Coordinate x_, y_;
@@ -17,13 +18,10 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D
     const Color fg_color_;
 
    public:
-    Coordinate start_val_x() const noexcept override { return x_; }
-    Coordinate start_val_y() const noexcept override { return y_; }
-    Coordinate end_val_x() const noexcept override
-    {
-        return x_ + static_cast<Coordinate>(width()) - 1;
-    }
-    Coordinate end_val_y() const noexcept override
+    Coordinate start_x() const noexcept override { return x_; }
+    Coordinate start_y() const noexcept override { return y_; }
+    Coordinate end_x() const noexcept override { return x_ + static_cast<Coordinate>(width()) - 1; }
+    Coordinate end_y() const noexcept override
     {
         return y_ + static_cast<Coordinate>(height()) - 1;
     }
@@ -62,7 +60,7 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D
             case 'w':
                 if (!is_dead_)
                 {
-                    --y_;
+                    y_ -= 5;
                 }
                 break;
 
@@ -88,6 +86,8 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D
                 break;
         }
     }
+
+    void Move() override { ++y_; }
 
     bool HasCollisionWith(const ICollision &other) const override
     {

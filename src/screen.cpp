@@ -81,10 +81,10 @@ void TerminalScreen::SetCursorAbsolute(const SizeParam abs_x, const SizeParam ab
 
 void TerminalScreen::SetCursor(const Coordinate x, const Coordinate y)
 {
-    Coordinate new_x = (x - start_val_x_) % width_;
+    Coordinate new_x = (x - start_x_) % width_;
     new_x = new_x < 0 ? new_x + width_ : new_x;
 
-    Coordinate new_y = (y - start_val_y_) % height_;
+    Coordinate new_y = (y - start_y_) % height_;
     new_y = new_y < 0 ? new_y + height_ : new_y;
 
     SetCursorAbsolute(new_x, new_y);
