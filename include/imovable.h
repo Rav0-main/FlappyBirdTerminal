@@ -3,7 +3,7 @@
 
 struct IMovable
 {
-    virtual void Move() = 0;
+    virtual void Move(const double delta_secs_from_last_frame) = 0;
 };
 
 #endif  // !IMOVABLE_H

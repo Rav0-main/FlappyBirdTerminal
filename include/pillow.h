@@ -15,13 +15,17 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
 {
    private:
     // Coordinates of left up vertex.
-    Coordinate x_, y_;
+    double x_, y_;
     const SizeParam width_;
 
     const SizeParam non_empty_up_height_, empty_height_, non_empty_down_height_;
 
     const char start_symbol_, middle_symbol_, end_symbol_;
     const Color fg_color_;
+
+    const Coordinate speed_x_per_second_ = 20;
+
+    bool bird_passed_ = false;
 
    public:
     Coordinate start_x() const noexcept override { return x_; }
@@ -37,6 +41,9 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
     {
         return non_empty_up_height_ + empty_height_ + non_empty_down_height_;
     }
+
+    bool IsPassed() const noexcept { return bird_passed_; }
+    void SetPassed() noexcept { bird_passed_ = true; }
 
     Pillow(const std::pair<typename IScreen2D<Color>::Coordinate,
                            typename IScreen2D<Color>::Coordinate> &start_coords,
@@ -69,28 +76,34 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
 
     bool HasCollisionWith(const Bird<Color> &bird) const
     {
-        if (bird.end_x() < x_)
+        if (bird.end_x() < start_x())
         {
             return false;
         }
-        if (x_ == bird.end_x())
+        // >[
+        if (start_x() == bird.end_x())
         {
-            return (bird.start_y() >= y_ && bird.start_y() < y_ + non_empty_up_height_) ||
-                   (bird.start_y() >= y_ + non_empty_up_height_ + empty_height_ &&
+            return (bird.start_y() >= start_y() &&
+                    bird.start_y() < start_y() + non_empty_up_height_) ||
+                   (bird.start_y() >= start_y() + non_empty_up_height_ + empty_height_ &&
                     bird.start_y() <
-                        y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
+                        start_y() + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
         }
-        if (bird.start_x() >= x_ && bird.end_x() <= x_ + width_)
+        if (start_x() < bird.end_x() || bird.start_x() < end_x())
         {
-            return bird.start_y() == y_ || bird.start_y() == y_ + non_empty_up_height_ - 1 ||
-                   bird.start_y() == y_ + non_empty_up_height_ + empty_height_ ||
-                   bird.start_y() ==
-                       y_ + non_empty_up_height_ + empty_height_ + non_empty_down_height_ - 1;
+            return bird.start_y() >= start_y() ||
+                   bird.start_y() <= start_y() + non_empty_up_height_ - 1 ||
+                   bird.start_y() >= start_y() + non_empty_up_height_ + empty_height_ ||
+                   bird.start_y() <= start_y() + non_empty_up_height_ + empty_height_ +
+                                         non_empty_down_height_ - 1;
         }
         return false;
     }
 
-    void Move() override { --x_; }
+    void Move(const double delta_secs_from_last_frame) override
+    {
+        x_ -= speed_x_per_second_ * delta_secs_from_last_frame;
+    }
 
     void DrawOn(IScreen2D<Color> &screen) const override
     {

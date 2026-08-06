@@ -12,10 +12,11 @@ template <typename Color>
 class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, public IMovable
 {
    private:
-    Coordinate x_, y_;
+    double x_, y_;
     bool is_dead_;
     const std::string picture_;
     const Color fg_color_;
+    const double speed_y_per_second_ = 2;
 
    public:
     Coordinate start_x() const noexcept override { return x_; }
@@ -60,7 +61,7 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
             case 'w':
                 if (!is_dead_)
                 {
-                    y_ -= 5;
+                    y_ -= 3;
                 }
                 break;
 
@@ -87,7 +88,10 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
         }
     }
 
-    void Move() override { ++y_; }
+    void Move(const double delta_secs_from_last_frame) override
+    {
+        y_ += speed_y_per_second_ * delta_secs_from_last_frame;
+    }
 
     bool HasCollisionWith(const ICollision &other) const override
     {

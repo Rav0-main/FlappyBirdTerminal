@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <deque>
 #include <format>
 #include <stdexcept>
@@ -103,6 +104,25 @@ class PillowRandomManager
     }
 };
 
+class Timer
+{
+   private:
+    using Time = decltype(std::chrono::high_resolution_clock::now());
+    Time prev_time_;
+
+   public:
+    Timer() : prev_time_(std::chrono::high_resolution_clock::now()) {}
+
+    double GetFrameTime()
+    {
+        Time current_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = current_time - prev_time_;
+        prev_time_ = current_time;
+
+        return elapsed.count();
+    }
+};
+
 static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
 {
     TerminalScreen::SizeParam width = std_screen.width() * RATIO_SCREEN_WIDTH;
@@ -191,6 +211,7 @@ int main()
     bool run = true;
     bool pillows_stopped = false;
     unsigned long long score = 0ULL;
+    Timer clock;
     while (run)
     {
         int key = getch();
@@ -223,16 +244,17 @@ int main()
                                  std::make_pair(nonempty_up_height, nonempty_down_height),
                                  empty_height, PILLOW_PICTURE, COLOR_GREEN);
         }
-        if (bird.IsAlive())
+        auto frame_time = clock.GetFrameTime();
+        if (bird.IsAlive() && !pillows_stopped)
         {
-            bird.Move();
+            bird.Move(frame_time);
         }
 
         if (!pillows_stopped)
         {
             for (auto &p : pillows)
             {
-                p.Move();
+                p.Move(frame_time);
                 if (p.end_x() < game_screen.start_x())
                 {
                     pillows.pop_front();
@@ -240,6 +262,7 @@ int main()
             }
         }
 
+        // fix collision
         if (bird.IsAlive() && !pillows_stopped)
         {
             for (const auto &p : pillows)
@@ -252,8 +275,9 @@ int main()
             }
         }
 
-        if (bird.IsAlive() && (bird.start_y() == game_screen.start_y() ||
-                               bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
+        if (!pillows_stopped && bird.IsAlive() &&
+            (bird.start_y() == game_screen.start_y() ||
+             bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
         {
             bird.Kill();
             pillows_stopped = true;
@@ -261,11 +285,12 @@ int main()
 
         if (bird.IsAlive() && !pillows_stopped)
         {
-            for (const auto &p : pillows)
+            for (auto &p : pillows)
             {
-                if (p.end_x() + 1 == bird.start_x())
+                if (p.end_x() + 1 == bird.end_x() && !p.IsPassed())
                 {
                     ++score;
+                    p.SetPassed();
                     break;
                 }
             }

@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-inline constexpr unsigned short FPS = 30U;
+inline constexpr unsigned short FPS = 60U;
 static_assert(FPS != 0U);
 
 /*
