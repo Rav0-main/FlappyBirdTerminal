@@ -89,13 +89,16 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
                     bird.start_y() <
                         start_y() + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
         }
-        if (start_x() < bird.end_x() || bird.start_x() < end_x())
+        // [--]
+        // <>
+        // [--]
+        if (bird.start_x() < end_x())
         {
-            return bird.start_y() >= start_y() ||
-                   bird.start_y() <= start_y() + non_empty_up_height_ - 1 ||
-                   bird.start_y() >= start_y() + non_empty_up_height_ + empty_height_ ||
-                   bird.start_y() <= start_y() + non_empty_up_height_ + empty_height_ +
-                                         non_empty_down_height_ - 1;
+            return (bird.start_y() >= start_y() &&
+                    bird.start_y() < start_y() + non_empty_up_height_) ||
+                   (bird.start_y() >= start_y() + non_empty_up_height_ + empty_height_ &&
+                    bird.start_y() <
+                        start_y() + non_empty_up_height_ + empty_height_ + non_empty_down_height_);
         }
         return false;
     }
@@ -119,7 +122,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
         }
         screen.SetForegroundColor(fg_color_);
         // up non empty.
-        for (typename IScreen2D<Color>::SizeParam i = 0; i < non_empty_up_height_; ++i)
+        for (SizeParam i = 0; i < non_empty_up_height_; ++i)
         {
             if (x_ >= screen.start_x())
             {
@@ -131,7 +134,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
                 screen.SetCursor(screen.start_x(), y_ + i);
             }
 
-            typename IScreen2D<Color>::SizeParam j = 1;
+            SizeParam j = 1;
             while (j + 1 < width_ && x_ + j <= screen_end_x)
             {
                 if (x_ + j >= screen.start_x())
@@ -148,7 +151,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
         }
 
         // down non empty.
-        for (typename IScreen2D<Color>::SizeParam i = 0; i < non_empty_down_height_; ++i)
+        for (SizeParam i = 0; i < non_empty_down_height_; ++i)
         {
             if (x_ >= screen.start_x())
             {
@@ -160,7 +163,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
                 screen.SetCursor(screen.start_x(), y_ + non_empty_up_height_ + empty_height_ + i);
             }
 
-            typename IScreen2D<Color>::SizeParam j = 1;
+            SizeParam j = 1;
             while (j + 1 < width_ && x_ + j <= screen_end_x)
             {
                 if (x_ + j >= screen.start_x())

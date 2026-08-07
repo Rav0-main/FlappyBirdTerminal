@@ -35,6 +35,7 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
 
     // :(
     void Kill() noexcept { is_dead_ = true; }
+    void Revive() noexcept { is_dead_ = false; }
 
     Bird(const std::pair<typename IScreen2D<Color>::Coordinate,
                          typename IScreen2D<Color>::Coordinate> &start_coords,

@@ -1,4 +1,3 @@
-#include <ncurses.h>
 #include <unistd.h>
 #include <deque>
 #include <format>
@@ -102,7 +101,7 @@ int main()
 
     bool run = true;
     bool paused = false;
-    unsigned long long score = 0ULL;
+    unsigned long long score = 0;
     Timer clock;
     while (run)
     {
@@ -148,6 +147,14 @@ int main()
                     paused = !paused || !bird.IsAlive();
                     break;
 
+                case 'r':
+                    paused = false;
+                    pillows.clear();
+                    GeneratePillows(pillows, game_screen, pillow_randomizer);
+                    bird.Revive();
+                    score = 0;
+                    break;
+
                 case 'q':
                 case 'Q':
                     run = false;
@@ -167,7 +174,7 @@ int main()
                                  std::make_pair(nonempty_up_height, nonempty_down_height),
                                  empty_height, PILLOW_PICTURE, COLOR_GREEN);
         }
-        auto frame_time = clock.GetFrameTime();
+        const auto frame_time = clock.GetFrameTime();
         if (bird.IsAlive() && !paused)
         {
             bird.Move(frame_time);
@@ -185,7 +192,6 @@ int main()
             }
         }
 
-        // fix collision
         if (bird.IsAlive() && !paused)
         {
             for (const auto &p : pillows)
