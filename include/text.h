@@ -18,6 +18,7 @@ class Text : public IDrawable<Color>
     Color fg_color_, bg_color_;
 
    public:
+    Text() : Text("") {}
     Text(const char *content)
         : is_coords_inited_(false), content_(content), is_colors_inited_(false)
     {

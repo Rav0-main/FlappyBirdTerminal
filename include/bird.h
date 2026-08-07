@@ -19,6 +19,8 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
     const double speed_y_per_second_ = 2;
 
    public:
+    void set_start_x(const Coordinate new_x) noexcept { x_ = new_x; }
+    void set_start_y(const Coordinate new_y) noexcept { y_ = new_y; }
     Coordinate start_x() const noexcept override { return x_; }
     Coordinate start_y() const noexcept override { return y_; }
     Coordinate end_x() const noexcept override { return x_ + static_cast<Coordinate>(width()) - 1; }
@@ -59,30 +61,10 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
         switch (key)
         {
             case 'w':
+            case ' ':
                 if (!is_dead_)
                 {
                     y_ -= 3;
-                }
-                break;
-
-            case 's':
-                if (!is_dead_)
-                {
-                    ++y_;
-                }
-                break;
-
-            case 'd':
-                if (!is_dead_)
-                {
-                    ++x_;
-                }
-                break;
-
-            case 'a':
-                if (!is_dead_)
-                {
-                    --x_;
                 }
                 break;
         }

@@ -1,127 +1,15 @@
+#include <ncurses.h>
 #include <unistd.h>
-#include <algorithm>
-#include <array>
-#include <chrono>
 #include <deque>
 #include <format>
-#include <stdexcept>
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
-#include "randomizer.h"
+#include "pillow_random_manager.h"
 #include "screen.h"
 #include "screen_rectangle.h"
 #include "text.h"
-
-class PillowRandomManager
-{
-   private:
-    Randomizer<TerminalScreen::Coordinate> y_;
-    Randomizer<TerminalScreen::SizeParam> width_;
-    Randomizer<unsigned int> nonempty_up_height_ratio_;
-    Randomizer<unsigned int> empty_height_ratio_;
-    Randomizer<unsigned int> nonempty_down_height_ratio_;
-
-    Randomizer<TerminalScreen::SizeParam> down_empty_height_{PILLOW_DOWN_EMPTY_RANGE.first,
-                                                             PILLOW_DOWN_EMPTY_RANGE.second};
-
-    const TerminalScreen::SizeParam screen_start_y_, screen_height_;
-
-   public:
-    PillowRandomManager(const TerminalScreen &game_screen)
-        : y_(game_screen.start_y() + PILLOW_UP_EMPTY_RANGE.first,
-             game_screen.start_y() + PILLOW_UP_EMPTY_RANGE.second),
-
-          width_(PILLOW_WIDTH_RANGE.first, PILLOW_WIDTH_RANGE.second),
-
-          nonempty_up_height_ratio_(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first,
-                                    PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second),
-
-          empty_height_ratio_(PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.first,
-                              PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.second),
-
-          nonempty_down_height_ratio_(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first,
-                                      PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second),
-          screen_start_y_(game_screen.start_y()),
-          screen_height_(game_screen.height())
-    {
-        if (screen_height_ <
-            PILLOW_UP_EMPTY_RANGE.second + PILLOW_DOWN_EMPTY_RANGE.second + SCREEN_MIN_HEIGHT)
-        {
-            throw std::out_of_range(
-                "Screeen height must be > PILLOW_UP_EMPTY_RANGE.second + "
-                "PILLOW_DOWN_EMPTY_RANGE.second + HEIGHT_MIN.");
-        }
-    }
-
-    TerminalScreen::Coordinate start_y() { return y_(); }
-    TerminalScreen::SizeParam width() { return width_(); }
-
-    std::array<TerminalScreen::SizeParam, 3> heights(const TerminalScreen::SizeParam y)
-    {
-        const auto H = screen_height_ - y - screen_start_y_ - down_empty_height_() + 1;
-        const auto Hd = static_cast<double>(H);
-
-        const auto i = nonempty_up_height_ratio_();
-        const auto j = empty_height_ratio_();
-        const auto k = nonempty_down_height_ratio_();
-
-        std::array<double, 3> exact = {Hd * i / (i + j + k), Hd * j / (i + j + k),
-                                       Hd * k / (i + j + k)};
-
-        std::array<TerminalScreen::SizeParam, 3> heights;
-        std::array<double, 3> remainders;
-
-        for (unsigned short i = 0; i < 3; ++i)
-        {
-            heights[i] = static_cast<TerminalScreen::SizeParam>(exact[i]);
-            remainders[i] = exact[i] - heights[i];
-        }
-
-        TerminalScreen::SizeParam current_sum = std::accumulate(heights.begin(), heights.end(), 0U);
-        TerminalScreen::SizeParam p = H - current_sum;
-
-        std::array<unsigned short, 3> indexes = {0, 1, 2};
-        std::sort(indexes.begin(), indexes.end(), [&remainders](unsigned short i, unsigned short j)
-                  { return remainders[i] > remainders[j]; });
-
-        for (unsigned short i = 0; i < p; ++i)
-        {
-            ++heights[indexes[i]];
-        }
-
-        for (unsigned short i = 0; i < 3; ++i)
-        {
-            if (heights[i] < 1)
-            {
-                heights[i] = 1;
-                auto max_iter = std::max_element(heights.begin(), heights.end());
-                --(*max_iter);
-            }
-        }
-
-        return heights;
-    }
-};
-
-class Timer
-{
-   private:
-    using Time = decltype(std::chrono::high_resolution_clock::now());
-    Time prev_time_;
-
-   public:
-    Timer() : prev_time_(std::chrono::high_resolution_clock::now()) {}
-
-    double GetFrameTime()
-    {
-        Time current_time = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = current_time - prev_time_;
-        prev_time_ = current_time;
-
-        return elapsed.count();
-    }
-};
+#include "timer.h"
 
 static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
 {
@@ -177,6 +65,7 @@ static inline void FPSTick(const unsigned short fps)
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
+    // fix output Upper symbols
     TerminalScreen game_screen = GetGameScreenIn(std_screen);
 
     if (game_screen.height() < SCREEN_MIN_HEIGHT)
@@ -196,7 +85,10 @@ int main()
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
         BIRD_PICTURE, COLOR_RED);
 
-    PillowRandomManager pillow_randomizer(game_screen);
+    PillowRandomManager pillow_randomizer(
+        game_screen, PILLOW_UP_EMPTY_RANGE, PILLOW_DOWN_EMPTY_RANGE, PILLOW_WIDTH_RANGE,
+        PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE, PILLOW_EMPTY_HEIGHT_RATIOS_RANGE,
+        PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE);
     /*
      * Do cycle buffer (for remove memory allocations on every push/pop pillow).
      */
@@ -209,7 +101,7 @@ int main()
     std_screen.Update();
 
     bool run = true;
-    bool pillows_stopped = false;
+    bool paused = false;
     unsigned long long score = 0ULL;
     Timer clock;
     while (run)
@@ -217,12 +109,43 @@ int main()
         int key = getch();
         if (key != ERR)
         {
-            bird.HandlePressedKey(key);
+            if (!paused && bird.IsAlive())
+            {
+                bird.HandlePressedKey(key);
+            }
 
             switch (key)
             {
-                case ' ':
-                    pillows_stopped = !pillows_stopped || !bird.IsAlive();
+                case 'w':
+                    if (paused && bird.IsAlive())
+                    {
+                        bird.set_start_y(bird.start_y() - 1);
+                    }
+                    break;
+
+                case 's':
+                    if (paused && bird.IsAlive())
+                    {
+                        bird.set_start_y(bird.start_y() + 1);
+                    }
+                    break;
+
+                case 'a':
+                    if (paused && bird.IsAlive())
+                    {
+                        bird.set_start_x(bird.start_x() - 1);
+                    }
+                    break;
+
+                case 'd':
+                    if (paused && bird.IsAlive())
+                    {
+                        bird.set_start_x(bird.start_x() + 1);
+                    }
+                    break;
+
+                case 'p':
+                    paused = !paused || !bird.IsAlive();
                     break;
 
                 case 'q':
@@ -245,12 +168,12 @@ int main()
                                  empty_height, PILLOW_PICTURE, COLOR_GREEN);
         }
         auto frame_time = clock.GetFrameTime();
-        if (bird.IsAlive() && !pillows_stopped)
+        if (bird.IsAlive() && !paused)
         {
             bird.Move(frame_time);
         }
 
-        if (!pillows_stopped)
+        if (!paused)
         {
             for (auto &p : pillows)
             {
@@ -263,27 +186,27 @@ int main()
         }
 
         // fix collision
-        if (bird.IsAlive() && !pillows_stopped)
+        if (bird.IsAlive() && !paused)
         {
             for (const auto &p : pillows)
             {
                 if (p.HasCollisionWith(bird))
                 {
                     bird.Kill();
-                    pillows_stopped = true;
+                    paused = true;
                 }
             }
         }
 
-        if (!pillows_stopped && bird.IsAlive() &&
+        if (!paused && bird.IsAlive() &&
             (bird.start_y() == game_screen.start_y() ||
              bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
         {
             bird.Kill();
-            pillows_stopped = true;
+            paused = true;
         }
 
-        if (bird.IsAlive() && !pillows_stopped)
+        if (bird.IsAlive() && !paused)
         {
             for (auto &p : pillows)
             {
@@ -301,8 +224,28 @@ int main()
         {
             game_screen << p;
         }
-        game_screen << Text<TerminalColor>(std::format("score: {}", score).c_str(),
-                                           {COLOR_WHITE, game_screen.default_bgcolor()}, {0, 0});
+
+        Text<TerminalColor> text_info;
+        if (!paused && bird.IsAlive())
+        {
+            text_info = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
+                                            {COLOR_WHITE, game_screen.default_bgcolor()},
+                                            {game_screen.start_x(), game_screen.start_y()});
+        }
+        else if (!bird.IsAlive())
+        {
+            text_info =
+                Text<TerminalColor>("Game Over!", {COLOR_RED, game_screen.default_bgcolor()},
+                                    {game_screen.start_x(), game_screen.start_y()});
+        }
+        else
+        {
+            text_info =
+                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.default_bgcolor()},
+                                    {game_screen.start_x(), game_screen.start_y()});
+        }
+
+        game_screen << text_info;
 
         game_screen << bird;
         game_screen.Update();
