@@ -23,7 +23,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
     const char start_symbol_, middle_symbol_, end_symbol_;
     const Color fg_color_;
 
-    const Coordinate speed_x_per_second_ = 20;
+    const Coordinate speed_x_per_second_;
 
     bool bird_passed_ = false;
 
@@ -45,14 +45,13 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
     bool IsPassed() const noexcept { return bird_passed_; }
     void SetPassed() noexcept { bird_passed_ = true; }
 
-    Pillow(const std::pair<typename IScreen2D<Color>::Coordinate,
-                           typename IScreen2D<Color>::Coordinate> &start_coords,
-           const typename IScreen2D<Color>::SizeParam width,
-           const std::pair<typename IScreen2D<Color>::SizeParam,
-                           typename IScreen2D<Color>::SizeParam> &non_empty_heights,
-           const typename IScreen2D<Color>::SizeParam empty_height,
+    Pillow(const std::pair<Coordinate, Coordinate> &start_coords,
+           const SizeParam width,
+           const std::pair<SizeParam, SizeParam> &non_empty_heights,
+           const SizeParam empty_height,
            const std::array<char, 3> &symbols,
-           const Color &color)
+           const Color &color,
+           const Coordinate speed_x_per_second)
         : x_(start_coords.first),
           y_(start_coords.second),
           width_(width),
@@ -62,7 +61,8 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
           start_symbol_(symbols.at(0)),
           middle_symbol_(symbols.at(1)),
           end_symbol_(symbols.at(2)),
-          fg_color_(color)
+          fg_color_(color),
+          speed_x_per_second_(speed_x_per_second)
     {
         if (width_ < 2)
         {

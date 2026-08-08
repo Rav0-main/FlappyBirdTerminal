@@ -16,7 +16,7 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
     bool is_dead_;
     const std::string picture_;
     const Color fg_color_;
-    const double speed_y_per_second_ = 2;
+    const Coordinate speed_y_per_second_;
 
    public:
     void set_start_x(const Coordinate new_x) noexcept { x_ = new_x; }
@@ -37,15 +37,16 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
     void Kill() noexcept { is_dead_ = true; }
     void Revive() noexcept { is_dead_ = false; }
 
-    Bird(const std::pair<typename IScreen2D<Color>::Coordinate,
-                         typename IScreen2D<Color>::Coordinate> &start_coords,
+    Bird(const std::pair<Coordinate, Coordinate> &start_coords,
          const std::string &picture,
-         const Color &color)
+         const Color &color,
+         const Coordinate speed_y_per_second)
         : x_(start_coords.first),
           y_(start_coords.second),
           is_dead_(false),
           picture_(picture),
-          fg_color_(color)
+          fg_color_(color),
+          speed_y_per_second_(speed_y_per_second)
     {
         if (picture_.length() == 0)
         {

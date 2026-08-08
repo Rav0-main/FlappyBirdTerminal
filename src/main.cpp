@@ -50,7 +50,7 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
         pillows.emplace_back(
             std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW + sum_width_prev, y),
             pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
-            empty_height, PILLOW_PICTURE, COLOR_GREEN + 8);
+            empty_height, PILLOW_PICTURE, COLOR_GREEN, PILLOW_SPEED_X_PER_SECOND);
 
         sum_width_prev += pillows.back().width();
     }
@@ -81,15 +81,14 @@ int main()
 
     Bird<TerminalColor> bird(
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
-        BIRD_PICTURE, COLOR_RED);
+        BIRD_PICTURE, COLOR_RED, 2);
 
     PillowRandomManager pillow_randomizer(
         game_screen, PILLOW_UP_EMPTY_RANGE, PILLOW_DOWN_EMPTY_RANGE, PILLOW_WIDTH_RANGE,
         PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE, PILLOW_EMPTY_HEIGHT_RATIOS_RANGE,
         PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE);
-    /*
-     * Do cycle buffer (for remove memory allocations on every push/pop pillow).
-     */
+
+    // Do cycle buffer (for remove memory allocations on every push/pop pillow).
     std::deque<Pillow<TerminalColor>> pillows;
     GeneratePillows(pillows, game_screen, pillow_randomizer);
     TerminalScreen::GameModeOn();
@@ -153,6 +152,8 @@ int main()
                     pillows.clear();
                     GeneratePillows(pillows, game_screen, pillow_randomizer);
                     bird.Revive();
+                    bird.set_start_x(game_screen.width() * RATIO_BIRD_POSITION_X);
+                    bird.set_start_y(game_screen.height() * RATIO_BIRD_POSITION_Y);
                     score = 0;
                     break;
 
@@ -171,10 +172,10 @@ int main()
             const auto [nonempty_up_height, empty_height, nonempty_down_height] =
                 pillow_randomizer.heights(y);
 
-            pillows.emplace_back(std::make_pair(game_screen.start_x() + game_screen.width(), y),
-                                 pillow_randomizer.width(),
-                                 std::make_pair(nonempty_up_height, nonempty_down_height),
-                                 empty_height, PILLOW_PICTURE, COLOR_GREEN);
+            pillows.emplace_back(
+                std::make_pair(game_screen.start_x() + game_screen.width(), y),
+                pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
+                empty_height, PILLOW_PICTURE, COLOR_GREEN, PILLOW_SPEED_X_PER_SECOND);
         }
 
         const auto frame_time = clock.GetFrameTime();

@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-inline constexpr unsigned short FPS = 120;
+inline constexpr unsigned short FPS = 60;
 static_assert(FPS != 0U);
 
 /*
@@ -35,19 +35,19 @@ static_assert(SCREEN_CRITICAL_HEIGHT >= SCREEN_MIN_HEIGHT);
 /*
  * Visual of bird at screen
  */
-inline constexpr std::string BIRD_PICTURE = "<>";
+inline constexpr std::string BIRD_PICTURE = "<->";
 static_assert(BIRD_PICTURE.length() > 0U);
 
 /*
  * RATIO_BIRD_POSITION_X = BIRD_X / SCREEN_WIDTH
  */
-inline constexpr double RATIO_BIRD_POSITION_X = 0.14;
+inline constexpr double RATIO_BIRD_POSITION_X = 0.30;
 static_assert(RATIO_BIRD_POSITION_X > 0.0 && RATIO_BIRD_POSITION_X < 1.0);
 
 /*
  * RATIO_BIRD_POSITION_Y = BIRD_Y / SCREEN_HEIGHT
  */
-inline constexpr double RATIO_BIRD_POSITION_Y = 0.45;
+inline constexpr double RATIO_BIRD_POSITION_Y = 0.52;
 static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0);
 
 /*
@@ -60,8 +60,10 @@ static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0);
  */
 inline constexpr std::array<char, 3> PILLOW_PICTURE = {'[', '-', ']'};
 
+inline constexpr double PILLOW_SPEED_X_PER_SECOND = 20;
+
 /* Screen width per pillow */
-inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 25U;
+inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 20U;
 
 /*
  * -------------- <- upper border of screen
