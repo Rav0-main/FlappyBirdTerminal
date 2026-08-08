@@ -19,11 +19,11 @@ static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
     {
         return TerminalScreen(
             {width, height}, {(std_screen.width() - width) / 2, (std_screen.height() - height) / 2},
-            {0, 0}, {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
+            {0, 0}, {std_screen.current_fgcolor(), std_screen.current_bgcolor()});
     }
 
     return TerminalScreen({width, std_screen.height() - 2}, {(std_screen.width() - width) / 2, 1},
-                          {0, 0}, {std_screen.default_fgcolor(), std_screen.default_bgcolor()});
+                          {0, 0}, {std_screen.current_fgcolor(), std_screen.current_bgcolor()});
 }
 
 static inline void DrawScreenRectangleFor(const TerminalScreen &screen,
@@ -50,7 +50,7 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
         pillows.emplace_back(
             std::make_pair(x_prev + i * RATIO_WIDTH_PER_PILLOW + sum_width_prev, y),
             pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
-            empty_height, PILLOW_PICTURE, COLOR_GREEN);
+            empty_height, PILLOW_PICTURE, COLOR_GREEN + 8);
 
         sum_width_prev += pillows.back().width();
     }
@@ -64,7 +64,6 @@ static inline void FPSTick(const unsigned short fps)
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
-    // fix output Upper symbols
     TerminalScreen game_screen = GetGameScreenIn(std_screen);
 
     if (game_screen.height() < SCREEN_MIN_HEIGHT)
@@ -105,7 +104,9 @@ int main()
     Timer clock;
     while (run)
     {
-        int key = getch();
+        int key = game_screen.GetKey();
+
+        // Handle pressed key by player
         if (key != ERR)
         {
             if (!paused && bird.IsAlive())
@@ -162,6 +163,7 @@ int main()
             }
         }
 
+        // Spawn new pillow
         if (game_screen.end_x() - pillows.back().end_x() >=
             static_cast<TerminalScreen::Coordinate>(RATIO_WIDTH_PER_PILLOW))
         {
@@ -174,12 +176,14 @@ int main()
                                  std::make_pair(nonempty_up_height, nonempty_down_height),
                                  empty_height, PILLOW_PICTURE, COLOR_GREEN);
         }
+
         const auto frame_time = clock.GetFrameTime();
         if (bird.IsAlive() && !paused)
         {
             bird.Move(frame_time);
         }
 
+        // Move pillows
         if (!paused)
         {
             for (auto &p : pillows)
@@ -192,6 +196,7 @@ int main()
             }
         }
 
+        // Bird collision with pillows
         if (bird.IsAlive() && !paused)
         {
             for (const auto &p : pillows)
@@ -204,6 +209,7 @@ int main()
             }
         }
 
+        // Bird collision with up and down screen borders
         if (!paused && bird.IsAlive() &&
             (bird.start_y() == game_screen.start_y() ||
              bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
@@ -212,6 +218,7 @@ int main()
             paused = true;
         }
 
+        // Calculate score
         if (bird.IsAlive() && !paused)
         {
             for (auto &p : pillows)
@@ -225,6 +232,7 @@ int main()
             }
         }
 
+        // Drawing frame
         game_screen.Clear();
         for (const auto &p : pillows)
         {
@@ -235,19 +243,19 @@ int main()
         if (!paused && bird.IsAlive())
         {
             text_info = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
-                                            {COLOR_WHITE, game_screen.default_bgcolor()},
+                                            {COLOR_WHITE, game_screen.current_bgcolor()},
                                             {game_screen.start_x(), game_screen.start_y()});
         }
         else if (!bird.IsAlive())
         {
             text_info =
-                Text<TerminalColor>("Game Over!", {COLOR_RED, game_screen.default_bgcolor()},
+                Text<TerminalColor>("Game Over!", {COLOR_RED, game_screen.current_bgcolor()},
                                     {game_screen.start_x(), game_screen.start_y()});
         }
         else
         {
             text_info =
-                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.default_bgcolor()},
+                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.current_bgcolor()},
                                     {game_screen.start_x(), game_screen.start_y()});
         }
 

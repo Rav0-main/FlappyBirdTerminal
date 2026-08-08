@@ -47,6 +47,7 @@ class TerminalScreen : public IScreen2D<TerminalColor>
         nodelay(stdscr, TRUE);
         curs_set(0);
     }
+    static int GetKey() { return getch(); }
 
     TerminalScreen(const std::pair<SizeParam, SizeParam> &size,
                    const std::pair<DeltaVal, DeltaVal> &delties,
@@ -97,8 +98,8 @@ class TerminalScreen : public IScreen2D<TerminalColor>
     DeltaVal delta_y() const noexcept override { return delta_y_; }
     Coordinate start_x() const noexcept override { return start_x_; }
     Coordinate start_y() const noexcept override { return start_y_; }
-    TerminalColor default_fgcolor() const noexcept { return default_fgcolor_; }
-    TerminalColor default_bgcolor() const noexcept { return default_bgcolor_; }
+    TerminalColor current_fgcolor() const noexcept { return current_fgcolor_; }
+    TerminalColor current_bgcolor() const noexcept { return current_bgcolor_; }
 
     void Draw(const char symbol) override;
     void Update() override;
