@@ -38,7 +38,7 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
                                    const TerminalScreen &game_screen,
                                    PillowRandomManager &pillow_randomizer)
 {
-    const auto x_prev = game_screen.width();
+    const auto x_prev = 3 * game_screen.width() / 4;
     TerminalScreen::SizeParam sum_width_prev = 0;
 
     for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
@@ -69,19 +69,19 @@ int main()
     if (game_screen.height() < SCREEN_MIN_HEIGHT)
     {
         std_screen << "You have very small screen height :(";
-        getch();
+        std_screen.GetKey();
         return 1;
     }
     if (game_screen.width() < RATIO_WIDTH_PER_PILLOW)
     {
         std_screen << "You have very small screen width :(";
-        getch();
+        std_screen.GetKey();
         return 1;
     }
 
     Bird<TerminalColor> bird(
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
-        BIRD_PICTURE, COLOR_RED, 2);
+        BIRD_SPEED_0Y, BIRD_PICTURE, COLOR_RED);
 
     PillowRandomManager pillow_randomizer(
         game_screen, PILLOW_UP_EMPTY_RANGE, PILLOW_DOWN_EMPTY_RANGE, PILLOW_WIDTH_RANGE,

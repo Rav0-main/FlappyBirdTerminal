@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-inline constexpr unsigned short FPS = 60;
+inline constexpr unsigned short FPS = 120;
 static_assert(FPS != 0U);
 
 /*
@@ -38,6 +38,9 @@ static_assert(SCREEN_CRITICAL_HEIGHT >= SCREEN_MIN_HEIGHT);
 inline constexpr std::string BIRD_PICTURE = "<->";
 static_assert(BIRD_PICTURE.length() > 0U);
 
+inline constexpr short BIRD_SPEED_0Y = -8;
+inline constexpr double g = 12.98;
+
 /*
  * RATIO_BIRD_POSITION_X = BIRD_X / SCREEN_WIDTH
  */
@@ -60,10 +63,12 @@ static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0);
  */
 inline constexpr std::array<char, 3> PILLOW_PICTURE = {'[', '-', ']'};
 
-inline constexpr double PILLOW_SPEED_X_PER_SECOND = 20;
+inline constexpr double PILLOW_SPEED_X_PER_SECOND = 13;
+static_assert(PILLOW_SPEED_X_PER_SECOND > 1);
 
 /* Screen width per pillow */
-inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 20U;
+inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 20;
+static_assert(RATIO_WIDTH_PER_PILLOW != 0);
 
 /*
  * -------------- <- upper border of screen
@@ -74,7 +79,7 @@ inline constexpr unsigned int RATIO_WIDTH_PER_PILLOW = 20U;
  *  [----]
  *  ....
  */
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_UP_EMPTY_RANGE = {0U, 0U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_UP_EMPTY_RANGE = {0, 0};
 static_assert(PILLOW_UP_EMPTY_RANGE.first <= PILLOW_UP_EMPTY_RANGE.second);
 
 /*
@@ -87,7 +92,7 @@ static_assert(PILLOW_UP_EMPTY_RANGE.first <= PILLOW_UP_EMPTY_RANGE.second);
  *      |   } - it's pillow down empty (current = 2)
  * ----------------
  */
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_DOWN_EMPTY_RANGE = {0U, 0U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_DOWN_EMPTY_RANGE = {0, 0};
 static_assert(PILLOW_DOWN_EMPTY_RANGE.first <= PILLOW_DOWN_EMPTY_RANGE.second);
 
 /*
@@ -99,20 +104,20 @@ static_assert(PILLOW_DOWN_EMPTY_RANGE.first <= PILLOW_DOWN_EMPTY_RANGE.second);
  * [--]  /
  * [--]  / } - it's nonempty down height
  */
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE = {
-    2U, 4U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE = {2,
+                                                                                                 4};
 static_assert(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first <=
               PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second);
 
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {1U, 3U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {2, 2};
 static_assert(PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.first <= PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.second);
 
 inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE = {
-    3U, 5U};
+    3, 5};
 static_assert(PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.first <=
               PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE.second);
 
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_WIDTH_RANGE = {4U, 9U};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_WIDTH_RANGE = {6, 6};
 static_assert(PILLOW_WIDTH_RANGE.first <= PILLOW_WIDTH_RANGE.second &&
               PILLOW_WIDTH_RANGE.second < RATIO_WIDTH_PER_PILLOW);
 

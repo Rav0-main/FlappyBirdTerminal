@@ -2,6 +2,7 @@
 #define BIRD_H
 
 #include <stdexcept>
+#include "config.h"
 #include "icollision.h"
 #include "idrawable.h"
 #include "imovable.h"
@@ -14,9 +15,10 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
    private:
     double x_, y_;
     bool is_dead_;
+    Coordinate speed_y_per_second_;
+    double secs_from_prev_upping_ = 0;
     const std::string picture_;
     const Color fg_color_;
-    const Coordinate speed_y_per_second_;
 
    public:
     void set_start_x(const Coordinate new_x) noexcept { x_ = new_x; }
@@ -35,18 +37,22 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
 
     // :(
     void Kill() noexcept { is_dead_ = true; }
-    void Revive() noexcept { is_dead_ = false; }
+    void Revive() noexcept
+    {
+        is_dead_ = false;
+        secs_from_prev_upping_ = 0;
+    }
 
     Bird(const std::pair<Coordinate, Coordinate> &start_coords,
+         const Coordinate speed_y_per_second,
          const std::string &picture,
-         const Color &color,
-         const Coordinate speed_y_per_second)
+         const Color &color)
         : x_(start_coords.first),
           y_(start_coords.second),
           is_dead_(false),
+          speed_y_per_second_(speed_y_per_second),
           picture_(picture),
-          fg_color_(color),
-          speed_y_per_second_(speed_y_per_second)
+          fg_color_(color)
     {
         if (picture_.length() == 0)
         {
@@ -66,7 +72,9 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
             case ' ':
                 if (!is_dead_)
                 {
-                    y_ -= 3;
+                    secs_from_prev_upping_ = 0.04;
+                    speed_y_per_second_ = -std::abs(speed_y_per_second_);
+                    y_ -= 0.8;
                 }
                 break;
         }
@@ -74,7 +82,10 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
 
     void Move(const double delta_secs_from_last_frame) override
     {
-        y_ += speed_y_per_second_ * delta_secs_from_last_frame;
+        y_ += speed_y_per_second_ * delta_secs_from_last_frame +
+              g * secs_from_prev_upping_ * delta_secs_from_last_frame;
+
+        secs_from_prev_upping_ += delta_secs_from_last_frame;
     }
 
     bool HasCollisionWith(const ICollision &other) const override
