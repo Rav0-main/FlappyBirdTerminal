@@ -61,7 +61,7 @@ static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0);
  * [---]
  * ....
  */
-inline constexpr std::array<char, 3> PILLOW_PICTURE = {'[', '-', ']'};
+inline constexpr std::array<char, 3> PILLOW_PICTURE = {'[', '=', ']'};
 
 inline constexpr double PILLOW_SPEED_X_PER_SECOND = 13;
 static_assert(PILLOW_SPEED_X_PER_SECOND > 1);
@@ -109,7 +109,7 @@ inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_UP_HEIGHT
 static_assert(PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.first <=
               PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE.second);
 
-inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {2, 2};
+inline constexpr std::pair<unsigned int, unsigned int> PILLOW_EMPTY_HEIGHT_RATIOS_RANGE = {3, 4};
 static_assert(PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.first <= PILLOW_EMPTY_HEIGHT_RATIOS_RANGE.second);
 
 inline constexpr std::pair<unsigned int, unsigned int> PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE = {
