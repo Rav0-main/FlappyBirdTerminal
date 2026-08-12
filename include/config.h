@@ -5,7 +5,9 @@
 #include <string>
 #include <utility>
 
-inline constexpr unsigned short FPS = 120;
+inline constexpr const char *BEST_SCORE_FILENAME = "best_score";
+
+inline constexpr unsigned short FPS = 60;
 static_assert(FPS != 0U);
 
 /*

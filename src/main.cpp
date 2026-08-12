@@ -1,6 +1,9 @@
 #include <unistd.h>
+#include <cstdint>
 #include <deque>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
@@ -9,6 +12,24 @@
 #include "screen_rectangle.h"
 #include "text.h"
 #include "timer.h"
+
+static inline uint32_t GetBestScore()
+{
+    if (!std::filesystem::exists(BEST_SCORE_FILENAME))
+    {
+        return 0;
+    }
+    std::ifstream fin(BEST_SCORE_FILENAME, std::ios::binary);
+    if (!fin.is_open())
+    {
+        return 0;
+    }
+
+    uint32_t best_score = 0;
+    fin.read(reinterpret_cast<char *>(&best_score), sizeof(best_score));
+
+    return best_score;
+}
 
 static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
 {
@@ -61,10 +82,21 @@ static inline void FPSTick(const unsigned short fps)
     usleep(1e6L / fps);
 }
 
+static inline void WriteBestScore(uint32_t best_score)
+{
+    std::ofstream fout(BEST_SCORE_FILENAME, std::ios::binary);
+    if (fout.is_open())
+    {
+        fout.write(reinterpret_cast<char *>(&best_score), sizeof(best_score));
+    }
+}
+
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
     TerminalScreen game_screen = GetGameScreenIn(std_screen);
+
+    uint32_t best_score = GetBestScore();
 
     if (game_screen.height() < SCREEN_MIN_HEIGHT)
     {
@@ -99,7 +131,7 @@ int main()
 
     bool run = true;
     bool paused = false;
-    unsigned long long score = 0;
+    uint32_t score = 0;
     Timer clock;
     while (run)
     {
@@ -149,6 +181,7 @@ int main()
 
                 case 'r':
                     paused = false;
+                    best_score = std::max(best_score, score);
                     pillows.clear();
                     GeneratePillows(pillows, game_screen, pillow_randomizer);
                     bird.Revive();
@@ -205,6 +238,7 @@ int main()
                 if (p.HasCollisionWith(bird))
                 {
                     bird.Kill();
+                    best_score = std::max(best_score, score);
                     paused = true;
                 }
             }
@@ -240,33 +274,44 @@ int main()
             game_screen << p;
         }
 
-        Text<TerminalColor> text_info;
+        Text<TerminalColor> text_status;
         if (!paused && bird.IsAlive())
         {
-            text_info = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
-                                            {COLOR_WHITE, game_screen.current_bgcolor()},
-                                            {game_screen.start_x(), game_screen.start_y()});
+            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+                                              {COLOR_WHITE, game_screen.current_bgcolor()},
+                                              {game_screen.start_x(), game_screen.start_y()});
         }
         else if (!bird.IsAlive())
         {
-            text_info =
-                Text<TerminalColor>("Game Over!", {COLOR_RED, game_screen.current_bgcolor()},
-                                    {game_screen.start_x(), game_screen.start_y()});
+            game_screen << Text<TerminalColor>(std::format("Game Over!\n", score).c_str(),
+                                               {COLOR_RED, game_screen.current_bgcolor()},
+                                               {game_screen.start_x(), game_screen.start_y()});
+
+            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+                                              {COLOR_WHITE, game_screen.current_bgcolor()});
         }
         else
         {
-            text_info =
-                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.current_bgcolor()},
+            text_status =
+                Text<TerminalColor>("Game Paused.\n", {COLOR_YELLOW, game_screen.current_bgcolor()},
                                     {game_screen.start_x(), game_screen.start_y()});
         }
 
-        game_screen << text_info;
+        game_screen << text_status;
+
+        Text<TerminalColor> text_best_score(std::format("Best score: {}", best_score).c_str(),
+                                            {COLOR_CYAN, game_screen.current_bgcolor()});
+
+        game_screen << text_best_score;
 
         game_screen << bird;
         game_screen.Update();
 
         FPSTick(FPS);
     }
+
+    best_score = std::max(best_score, score);
+    WriteBestScore(best_score);
 
     return 0;
 }
