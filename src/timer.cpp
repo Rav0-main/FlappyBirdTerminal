@@ -1,4 +1,5 @@
 #include "timer.h"
+#include <thread>
 
 double Timer::GetFrameTime()
 {
@@ -7,4 +8,9 @@ double Timer::GetFrameTime()
     prev_time_ = current_time;
 
     return elapsed.count();
+}
+
+void Timer::Tick() const noexcept
+{
+    std::this_thread::sleep_for(std::chrono::microseconds(tick_time_));
 }

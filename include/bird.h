@@ -14,7 +14,6 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
 {
    private:
     double x_, y_;
-    bool is_dead_;
     Coordinate speed_y_per_second_;
     double secs_from_prev_upping_ = 0;
     const std::string picture_;
@@ -33,23 +32,12 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
     SizeParam width() const noexcept override { return picture_.length(); }
     SizeParam height() const noexcept override { return 1U; }
 
-    bool IsAlive() const noexcept { return !is_dead_; }
-
-    // :(
-    void Kill() noexcept { is_dead_ = true; }
-    void Revive() noexcept
-    {
-        is_dead_ = false;
-        secs_from_prev_upping_ = 0;
-    }
-
     Bird(const std::pair<Coordinate, Coordinate> &start_coords,
          const Coordinate speed_y_per_second,
          const std::string &picture,
          const Color &color)
         : x_(start_coords.first),
           y_(start_coords.second),
-          is_dead_(false),
           speed_y_per_second_(speed_y_per_second),
           picture_(picture),
           fg_color_(color)
@@ -70,12 +58,9 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
         {
             case 'w':
             case ' ':
-                if (!is_dead_)
-                {
-                    secs_from_prev_upping_ = 0.04;
-                    speed_y_per_second_ = -std::abs(speed_y_per_second_);
-                    y_ -= 0.8;
-                }
+                secs_from_prev_upping_ = 0.04;
+                speed_y_per_second_ = -std::abs(speed_y_per_second_);
+                y_ -= 0.8;
                 break;
         }
     }
