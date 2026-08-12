@@ -158,6 +158,7 @@ int main()
                     pillows.clear();
                     GeneratePillows(pillows, game_screen, pillow_randomizer);
 
+                    bird.Reset();
                     bird.set_start_x(game_screen.width() * RATIO_BIRD_POSITION_X);
                     bird.set_start_y(game_screen.height() * RATIO_BIRD_POSITION_Y);
                     break;
@@ -273,6 +274,11 @@ int main()
             {COLOR_CYAN, game_screen.current_bgcolor()});
 
         game_screen << text_best_score;
+
+        game_screen << Text<TerminalColor>(
+            std::format("FPS: {}", static_cast<unsigned short>(clock.GetFPS())).c_str(),
+            {COLOR_BLUE, game_screen.current_bgcolor()},
+            {game_screen.start_y(), game_screen.end_y()});
 
         game_screen << bird;
         game_screen.Update();

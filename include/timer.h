@@ -10,6 +10,7 @@ class Timer
 
     Time prev_time_;
     const unsigned int tick_time_;
+    double prev_frame_time_;
 
    public:
     Timer(const unsigned int fps)
@@ -18,8 +19,12 @@ class Timer
     }
     Timer() : Timer(1e6 + 1) {}
 
+    /*
+     * Returns secs from previous call 'GetFrameTime' || constructor
+     */
     double GetFrameTime();
     void Tick() const noexcept;
+    unsigned short GetFPS() const noexcept;
 };
 
 #endif  // !TIMER_H

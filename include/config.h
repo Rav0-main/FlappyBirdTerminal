@@ -6,6 +6,7 @@
 #include <utility>
 
 inline constexpr const char *BEST_SCORE_FILENAME = "best_score";
+static_assert(BEST_SCORE_FILENAME != nullptr);
 
 inline constexpr unsigned short FPS = 60;
 static_assert(FPS != 0U);
@@ -65,7 +66,7 @@ static_assert(RATIO_BIRD_POSITION_Y > 0.0 && RATIO_BIRD_POSITION_Y < 1.0);
  */
 inline constexpr std::array<char, 3> PILLOW_PICTURE = {'[', '=', ']'};
 
-inline constexpr double PILLOW_SPEED_X_PER_SECOND = 13;
+inline constexpr unsigned short PILLOW_SPEED_X_PER_SECOND = 13;
 static_assert(PILLOW_SPEED_X_PER_SECOND > 1);
 
 /* Screen width per pillow */

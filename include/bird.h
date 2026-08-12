@@ -65,6 +65,8 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
         }
     }
 
+    void Reset() noexcept { secs_from_prev_upping_ = 0; }
+
     void Move(const double delta_secs_from_last_frame) override
     {
         y_ += speed_y_per_second_ * delta_secs_from_last_frame +
