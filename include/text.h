@@ -23,16 +23,6 @@ class Text : public IDrawable<Color>
         : is_coords_inited_(false), content_(content), is_colors_inited_(false)
     {
     }
-
-    Text(const char *content, const std::pair<Color, Color> colors)
-        : is_coords_inited_(false),
-          content_(content),
-          is_colors_inited_(true),
-          fg_color_(colors.first),
-          bg_color_(colors.second)
-    {
-    }
-
     Text(const char *content,
          const std::pair<Color, Color> colors,
          const std::pair<typename IScreen2D<Color>::Coordinate,
