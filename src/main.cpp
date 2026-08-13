@@ -1,6 +1,6 @@
-#include <unistd.h>
 #include <deque>
 #include <format>
+#include "best_score_manager.h"
 #include "bird.h"
 #include "config.h"
 #include "pillow.h"
@@ -9,6 +9,8 @@
 #include "screen_rectangle.h"
 #include "text.h"
 #include "timer.h"
+
+using GameStatus = enum { RUNNING, PAUSE, END };
 
 static inline TerminalScreen GetGameScreenIn(const TerminalScreen &std_screen)
 {
@@ -56,11 +58,6 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
     }
 }
 
-static inline void FPSTick(const unsigned short fps)
-{
-    usleep(1e6L / fps);
-}
-
 int main()
 {
     TerminalScreen std_screen = TerminalScreen::Init();
@@ -78,6 +75,8 @@ int main()
         std_screen.GetKey();
         return 1;
     }
+
+    BestScoreManager best_score(BEST_SCORE_FILENAME);
 
     Bird<TerminalColor> bird(
         {game_screen.width() * RATIO_BIRD_POSITION_X, game_screen.height() * RATIO_BIRD_POSITION_Y},
@@ -98,9 +97,9 @@ int main()
     std_screen.Update();
 
     bool run = true;
-    bool paused = false;
-    unsigned long long score = 0;
-    Timer clock;
+    GameStatus game_status = RUNNING;
+    BestScoreManager::Score score = 0;
+    Timer clock(FPS);
     while (run)
     {
         int key = game_screen.GetKey();
@@ -108,7 +107,7 @@ int main()
         // Handle pressed key by player
         if (key != ERR)
         {
-            if (!paused && bird.IsAlive())
+            if (game_status == RUNNING)
             {
                 bird.HandlePressedKey(key);
             }
@@ -116,49 +115,55 @@ int main()
             switch (key)
             {
                 case 'w':
-                    if (paused && bird.IsAlive())
+                    if (game_status == PAUSE)
                     {
                         bird.set_start_y(bird.start_y() - 1);
                     }
                     break;
 
                 case 's':
-                    if (paused && bird.IsAlive())
+                    if (game_status == PAUSE)
                     {
                         bird.set_start_y(bird.start_y() + 1);
                     }
                     break;
 
                 case 'a':
-                    if (paused && bird.IsAlive())
+                    if (game_status == PAUSE)
                     {
                         bird.set_start_x(bird.start_x() - 1);
                     }
                     break;
 
                 case 'd':
-                    if (paused && bird.IsAlive())
+                    if (game_status == PAUSE)
                     {
                         bird.set_start_x(bird.start_x() + 1);
                     }
                     break;
 
                 case 'p':
-                    paused = !paused || !bird.IsAlive();
+                    if (game_status == PAUSE || game_status == RUNNING)
+                    {
+                        game_status = game_status == PAUSE ? RUNNING : PAUSE;
+                    }
                     break;
 
                 case 'r':
-                    paused = false;
+                    game_status = RUNNING;
+
+                    best_score = std::max(best_score.current(), score);
+                    score = 0;
+
                     pillows.clear();
                     GeneratePillows(pillows, game_screen, pillow_randomizer);
-                    bird.Revive();
+
+                    bird.Reset();
                     bird.set_start_x(game_screen.width() * RATIO_BIRD_POSITION_X);
                     bird.set_start_y(game_screen.height() * RATIO_BIRD_POSITION_Y);
-                    score = 0;
                     break;
 
                 case 'q':
-                case 'Q':
                     run = false;
                     break;
             }
@@ -179,13 +184,13 @@ int main()
         }
 
         const auto frame_time = clock.GetFrameTime();
-        if (bird.IsAlive() && !paused)
+        if (game_status == RUNNING)
         {
             bird.Move(frame_time);
         }
 
         // Move pillows
-        if (!paused)
+        if (game_status == RUNNING)
         {
             for (auto &p : pillows)
             {
@@ -198,29 +203,28 @@ int main()
         }
 
         // Bird collision with pillows
-        if (bird.IsAlive() && !paused)
+        if (game_status == RUNNING)
         {
             for (const auto &p : pillows)
             {
                 if (p.HasCollisionWith(bird))
                 {
-                    bird.Kill();
-                    paused = true;
+                    best_score = std::max(best_score.current(), score);
+                    game_status = END;
                 }
             }
         }
 
         // Bird collision with up and down screen borders
-        if (!paused && bird.IsAlive() &&
+        if (game_status == RUNNING &&
             (bird.start_y() == game_screen.start_y() ||
              bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
         {
-            bird.Kill();
-            paused = true;
+            game_status = END;
         }
 
         // Calculate score
-        if (bird.IsAlive() && !paused)
+        if (game_status == RUNNING)
         {
             for (auto &p : pillows)
             {
@@ -240,33 +244,50 @@ int main()
             game_screen << p;
         }
 
-        Text<TerminalColor> text_info;
-        if (!paused && bird.IsAlive())
+        Text<TerminalColor> text_status;
+        if (game_status == RUNNING)
         {
-            text_info = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
-                                            {COLOR_WHITE, game_screen.current_bgcolor()},
-                                            {game_screen.start_x(), game_screen.start_y()});
+            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+                                              {COLOR_WHITE, game_screen.current_bgcolor()},
+                                              {game_screen.start_x(), game_screen.start_y()});
         }
-        else if (!bird.IsAlive())
+        else if (game_status == END)
         {
-            text_info =
-                Text<TerminalColor>("Game Over!", {COLOR_RED, game_screen.current_bgcolor()},
-                                    {game_screen.start_x(), game_screen.start_y()});
+            game_screen << Text<TerminalColor>(std::format("Game Over!\n", score).c_str(),
+                                               {COLOR_RED, game_screen.current_bgcolor()},
+                                               {game_screen.start_x(), game_screen.start_y()});
+
+            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+                                              {COLOR_WHITE, game_screen.current_bgcolor()});
         }
         else
         {
-            text_info =
-                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.current_bgcolor()},
+            text_status =
+                Text<TerminalColor>("Game Paused.\n", {COLOR_YELLOW, game_screen.current_bgcolor()},
                                     {game_screen.start_x(), game_screen.start_y()});
         }
 
-        game_screen << text_info;
+        game_screen << text_status;
+
+        Text<TerminalColor> text_best_score(
+            std::format("Best score: {}", best_score.current()).c_str(),
+            {COLOR_CYAN, game_screen.current_bgcolor()});
+
+        game_screen << text_best_score;
+
+        game_screen << Text<TerminalColor>(
+            std::format("FPS: {}", static_cast<unsigned short>(clock.GetFPS())).c_str(),
+            {COLOR_BLUE, game_screen.current_bgcolor()},
+            {game_screen.start_y(), game_screen.end_y()});
 
         game_screen << bird;
         game_screen.Update();
 
-        FPSTick(FPS);
+        clock.Tick();
     }
+
+    best_score = std::max(best_score.current(), score);
+    best_score.Write();
 
     return 0;
 }
