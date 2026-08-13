@@ -69,6 +69,9 @@ class Bird : public ICollision, public IDrawable<Color>, public IRectangle2D, pu
 
     void Move(const double delta_secs_from_last_frame) override
     {
+        /* dy = d[y0 + V0y * t + g * t^2]
+         * dy = V0y * dt + g * t * dt
+         */
         y_ += speed_y_per_second_ * delta_secs_from_last_frame +
               g * secs_from_prev_upping_ * delta_secs_from_last_frame;
 
