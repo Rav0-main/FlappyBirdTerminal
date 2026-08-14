@@ -1,8 +1,9 @@
-#include <deque>
+#include <cmath>
 #include <format>
 #include "best_score_manager.h"
 #include "bird.h"
 #include "config.h"
+#include "fixed_cycle_buffer.h"
 #include "pillow.h"
 #include "pillow_random_manager.h"
 #include "screen.h"
@@ -36,14 +37,18 @@ static inline void DrawScreenRectangleFor(const TerminalScreen &screen,
     where << screen_rectangle;
 }
 
-static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
-                                   const TerminalScreen &game_screen,
-                                   PillowRandomManager &pillow_randomizer)
+static inline FixedCycleBuffer<Pillow<TerminalColor>> GeneratePillows(
+    const TerminalScreen &game_screen,
+    PillowRandomManager &pillow_randomizer)
 {
     const auto x_prev = 3 * game_screen.width() / 4;
     TerminalScreen::SizeParam sum_width_prev = 0;
 
-    for (unsigned int i = 0; i < game_screen.width() / RATIO_WIDTH_PER_PILLOW; ++i)
+    const unsigned int max_pillows_at_screen =
+        floor(static_cast<double>(game_screen.width()) / RATIO_WIDTH_PER_PILLOW);
+
+    std::vector<Pillow<TerminalColor>> pillows;
+    for (unsigned int i = 0; i < max_pillows_at_screen; ++i)
     {
         const auto y = pillow_randomizer.start_y();
         const auto [nonempty_up_height, empty_height, nonempty_down_height] =
@@ -56,6 +61,8 @@ static inline void GeneratePillows(std::deque<Pillow<TerminalColor>> &pillows,
 
         sum_width_prev += pillows.back().width();
     }
+
+    return FixedCycleBuffer<Pillow<TerminalColor>>(pillows.begin(), pillows.end());
 }
 
 int main()
@@ -87,9 +94,7 @@ int main()
         PILLOW_NONEMPTY_UP_HEIGHT_RATIOS_RANGE, PILLOW_EMPTY_HEIGHT_RATIOS_RANGE,
         PILLOW_NONEMPTY_DOWN_HEIGHT_RATIOS_RANGE);
 
-    // Do cycle buffer (for remove memory allocations on every push/pop pillow).
-    std::deque<Pillow<TerminalColor>> pillows;
-    GeneratePillows(pillows, game_screen, pillow_randomizer);
+    auto pillows = GeneratePillows(game_screen, pillow_randomizer);
     TerminalScreen::GameModeOn();
 
     std_screen.Clear();
@@ -155,8 +160,7 @@ int main()
                     best_score = std::max(best_score.current(), score);
                     score = 0;
 
-                    pillows.clear();
-                    GeneratePillows(pillows, game_screen, pillow_randomizer);
+                    pillows = GeneratePillows(game_screen, pillow_randomizer);
 
                     bird.Reset();
                     bird.set_start_x(game_screen.width() * RATIO_BIRD_POSITION_X);
@@ -169,44 +173,47 @@ int main()
             }
         }
 
-        // Spawn new pillow
-        if (game_screen.end_x() - pillows.back().end_x() >=
-            static_cast<TerminalScreen::Coordinate>(RATIO_WIDTH_PER_PILLOW))
-        {
-            const auto y = pillow_randomizer.start_y();
-            const auto [nonempty_up_height, empty_height, nonempty_down_height] =
-                pillow_randomizer.heights(y);
-
-            pillows.emplace_back(
-                std::make_pair(game_screen.start_x() + game_screen.width(), y),
-                pillow_randomizer.width(), std::make_pair(nonempty_up_height, nonempty_down_height),
-                empty_height, PILLOW_PICTURE, COLOR_GREEN, PILLOW_SPEED_X_PER_SECOND);
-        }
-
         const auto frame_time = clock.GetFrameTime();
+        // Move bird
         if (game_status == RUNNING)
         {
             bird.Move(frame_time);
         }
 
+        // Spawn new pillow
+        if (game_status == RUNNING)
+        {
+            if (pillows.Front().end_x() < game_screen.start_x())
+            {
+                const auto y = pillow_randomizer.start_y();
+                const auto [nonempty_up_height, empty_height, nonempty_down_height] =
+                    pillow_randomizer.heights(y);
+
+                pillows.Front().set_start_x(pillows.Back().end_x() + RATIO_WIDTH_PER_PILLOW);
+                pillows.Front().set_start_y(y);
+                pillows.Front().set_width(pillow_randomizer.width());
+                pillows.Front().set_heights(nonempty_up_height, empty_height, nonempty_down_height);
+                pillows.Front().ResetPassed();
+
+                pillows.MoveFrontToBack();
+            }
+        }
+
         // Move pillows
         if (game_status == RUNNING)
         {
-            for (auto &p : pillows)
+            for (size_t i = 0; i < pillows.Size(); ++i)
             {
-                p.Move(frame_time);
-                if (p.end_x() < game_screen.start_x())
-                {
-                    pillows.pop_front();
-                }
+                pillows[i].Move(frame_time);
             }
         }
 
         // Bird collision with pillows
         if (game_status == RUNNING)
         {
-            for (const auto &p : pillows)
+            for (size_t i = 0; i < pillows.Size(); ++i)
             {
+                const auto &p = pillows[i];
                 if (p.HasCollisionWith(bird))
                 {
                     best_score = std::max(best_score.current(), score);
@@ -216,18 +223,19 @@ int main()
         }
 
         // Bird collision with up and down screen borders
-        if (game_status == RUNNING &&
-            (bird.start_y() == game_screen.start_y() ||
-             bird.start_y() == game_screen.start_y() + game_screen.height() - 1))
-        {
-            game_status = END;
-        }
+        if (game_status == RUNNING)
+            if (bird.start_y() == game_screen.start_y() ||
+                bird.start_y() == game_screen.start_y() + game_screen.height() - 1)
+            {
+                game_status = END;
+            }
 
         // Calculate score
         if (game_status == RUNNING)
         {
-            for (auto &p : pillows)
+            for (size_t i = 0; i < pillows.Size(); ++i)
             {
+                auto &p = pillows[i];
                 if (p.end_x() + 1 == bird.end_x() && !p.IsPassed())
                 {
                     ++score;
@@ -239,9 +247,9 @@ int main()
 
         // Drawing frame
         game_screen.Clear();
-        for (const auto &p : pillows)
+        for (size_t i = 0; i < pillows.Size() && pillows[i].start_x() <= game_screen.end_x(); ++i)
         {
-            game_screen << p;
+            game_screen << pillows[i];
         }
 
         Text<TerminalColor> text_status;
