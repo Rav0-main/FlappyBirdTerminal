@@ -1,11 +1,11 @@
-# Flappy Bird Terminal
+# 🐦 Flappy Bird Terminal
 
 ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![CMake](https://img.shields.io/badge/CMake-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
 ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![ncurses](https://img.shields.io/badge/ncurses-terminal-4E9A06?style=for-the-badge)
+![ncurses GNU](https://img.shields.io/badge/ncurses-GNU-4E9A06?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-## About
+## 𓂃🪶 About
 
 **Description**: A custom implementation of the classic game *Flappy Bird* in the *Linux terminal*.
 The rendering, physics, and gameplay were written from scratch.
@@ -13,7 +13,7 @@ The rendering, physics, and gameplay were written from scratch.
 **Gameplay**:
 <video src="https://github.com/user-attachments/assets/9a185900-9318-4ef8-a001-0e5cd611fa39" autoplay loop muted playsinline width="100%"></video>
 
-## Features
+## 📌 Features
 
 *The key feature* of the implementation lies in *the flexibility of the game configuration*.
 You can:
@@ -22,7 +22,7 @@ You can:
 3) change the position of the bird on the screen.\
 ... **etc**.
 
-## Requirements (tools)
+## 🛠️ Requirements (tools)
 
 **Tools**:
 * **CMake** >= **3.10**
@@ -30,9 +30,9 @@ You can:
 * **ncursesw** >= **5.0**
 * **Ubuntu / Debian Linux**.
 
-## Build & Installation
+## 🚀 Build & Installation
 
-**To build** this application you need launch `build.sh`. **If everything went well**, you will see the file `FlappyBirdTerminal` **in the root directory**. This is a full‑fledged game. You can launch it in terminal.
+**To build** this application You need launch `build.sh`. **If everything went well**, You will see the file `FlappyBirdTerminal` **in the root directory**. This is a full‑fledged game. You can launch it in terminal.
 
 **Installation & build**:
 ```sh
@@ -46,7 +46,7 @@ chmod +x ./build.sh
 ./build.sh && ./FlappyBirdTerminal
 ```
 
-## Application structure
+## 🧩 Application structure
 
 ```
 .
@@ -80,4 +80,4 @@ chmod +x ./build.sh
     └── timer.cpp
 ```
 
-### Thank you for reading ❤
+## ❤ Thank You for reading
