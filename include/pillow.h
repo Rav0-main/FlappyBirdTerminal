@@ -16,9 +16,9 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
    private:
     // Coordinates of left up vertex.
     double x_, y_;
-    const SizeParam width_;
+    SizeParam width_;
 
-    const SizeParam non_empty_up_height_, empty_height_, non_empty_down_height_;
+    SizeParam non_empty_up_height_, empty_height_, non_empty_down_height_;
 
     const char start_symbol_, middle_symbol_, end_symbol_;
     const Color fg_color_;
@@ -28,6 +28,17 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
     bool bird_passed_ = false;
 
    public:
+    void set_start_x(const Coordinate new_val) noexcept { x_ = new_val; }
+    void set_start_y(const Coordinate new_val) noexcept { y_ = new_val; }
+    void set_width(const SizeParam new_val) noexcept { width_ = new_val; }
+    void set_heights(const SizeParam new_non_empty_up,
+                     const SizeParam new_empty,
+                     const SizeParam new_non_empty_down) noexcept
+    {
+        non_empty_up_height_ = new_non_empty_up;
+        empty_height_ = new_empty;
+        non_empty_down_height_ = new_non_empty_down;
+    }
     Coordinate start_x() const noexcept override { return x_; }
     Coordinate start_y() const noexcept override { return y_; }
     Coordinate end_x() const noexcept override { return x_ + static_cast<Coordinate>(width_) - 1; }
@@ -44,6 +55,7 @@ class Pillow : public ICollision, public IDrawable<Color>, public IRectangle2D, 
 
     bool IsPassed() const noexcept { return bird_passed_; }
     void SetPassed() noexcept { bird_passed_ = true; }
+    void ResetPassed() noexcept { bird_passed_ = false; }
 
     Pillow(const std::pair<Coordinate, Coordinate> &start_coords,
            const SizeParam width,
