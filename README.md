@@ -41,16 +41,18 @@ git clone https://github.com/Rav0-main/FlappyBirdTerminal.git && cd FlappyBirdTe
 
 # Do build-script executable
 chmod +x ./build.sh
+chmod +x ./install.sh
 
-# Build and launch application.
-./build.sh && ./FlappyBirdTerminal
+# Install, build and launch application
+./install.sh && ./build.sh && ./FlappyBirdTerminal
 ```
 
 ## 🧩 Application structure
 
 ```
 .
-├── build.sh                       # Build application
+├── install.sh                     # install application requirements
+├── build.sh                       # build application
 ├── .clang-format                  # C++ format of application
 ├── CMakeLists.txt
 ├── .gitignore

@@ -1,11 +1,11 @@
 #!/usr/bin/bash
 
-# Install requirements
-sudo apt update && sudo apt install -y build-essential cmake libncursesw5-dev || exit 1
+# Create build directory
+if [ ! -e build ]; then
+  mkdir build || exit 1
+fi
 
 # Build application
-mkdir build || exit 1
-
 cmake -B build
 cmake --build build
 
