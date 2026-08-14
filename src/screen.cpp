@@ -3,17 +3,7 @@
 
 void TerminalScreen::Draw(const char symbol)
 {
-    if (symbol != '\n')
-    {
-        waddch(window_, symbol);
-    }
-    else
-    {
-        SizeParam current_x, current_y;
-        getyx(window_, current_y, current_x);
-
-        SetCursorAbsolute(0, current_y + 1);
-    }
+    waddch(window_, symbol);
 }
 
 void TerminalScreen::Update()
@@ -103,6 +93,22 @@ void TerminalScreen::SetCursor(const Coordinate x, const Coordinate y)
 void TerminalScreen::SetCursorStartVals()
 {
     SetCursorAbsolute(0, 0);
+}
+
+void TerminalScreen::SetCursorStartX()
+{
+    SizeParam current_x, current_y;
+    getyx(window_, current_y, current_x);
+
+    SetCursorAbsolute(0, current_y);
+}
+
+void TerminalScreen::SetCursorStartY()
+{
+    SizeParam current_x;
+    getyx(window_, current_x, current_x);
+
+    SetCursorAbsolute(current_x, 0);
 }
 
 void TerminalScreen::SetCursorVisible(const bool visible)

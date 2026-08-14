@@ -10,9 +10,8 @@
 #include "iscreen2d.h"
 
 using TerminalColor = int16_t;
-/*
- * In ncurses.h color is short.
- */
+
+// In ncurses.h color is short.
 static_assert(sizeof(TerminalColor) >= sizeof(short),
               "sizeof(short) must be <= 16 bits. On platform this project not supported.");
 
@@ -115,6 +114,8 @@ class TerminalScreen : public IScreen2D<TerminalColor>
 
     void SetCursor(const Coordinate x, const Coordinate y) override;
     void SetCursorStartVals() override;
+    void SetCursorStartX() override;
+    void SetCursorStartY() override;
     void MoveCursor(const Coordinate delta_x, const Coordinate delta_y) override;
     void SetCursorVisible(const bool visible = false) override;
 

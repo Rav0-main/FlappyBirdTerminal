@@ -247,27 +247,31 @@ int main()
         Text<TerminalColor> text_status;
         if (game_status == RUNNING)
         {
-            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+            text_status = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
                                               {COLOR_WHITE, game_screen.current_bgcolor()},
                                               {game_screen.start_x(), game_screen.start_y()});
         }
         else if (game_status == END)
         {
-            game_screen << Text<TerminalColor>(std::format("Game Over!\n", score).c_str(),
+            game_screen << Text<TerminalColor>(std::format("Game Over!", score).c_str(),
                                                {COLOR_RED, game_screen.current_bgcolor()},
                                                {game_screen.start_x(), game_screen.start_y()});
+            game_screen.MoveCursor(0, 1);
+            game_screen.SetCursorStartX();
 
-            text_status = Text<TerminalColor>(std::format("Score: {}\n", score).c_str(),
+            text_status = Text<TerminalColor>(std::format("Score: {}", score).c_str(),
                                               {COLOR_WHITE, game_screen.current_bgcolor()});
         }
         else
         {
             text_status =
-                Text<TerminalColor>("Game Paused.\n", {COLOR_YELLOW, game_screen.current_bgcolor()},
+                Text<TerminalColor>("Game Paused.", {COLOR_YELLOW, game_screen.current_bgcolor()},
                                     {game_screen.start_x(), game_screen.start_y()});
         }
 
         game_screen << text_status;
+        game_screen.MoveCursor(0, 1);
+        game_screen.SetCursorStartX();
 
         Text<TerminalColor> text_best_score(
             std::format("Best score: {}", best_score.current()).c_str(),

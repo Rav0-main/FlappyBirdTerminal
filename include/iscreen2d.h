@@ -25,6 +25,8 @@ struct IScreen2D : public IRectangle2D
     virtual void SetCursor(const Coordinate x, const Coordinate y) = 0;
     virtual void SetCursorStartVals() = 0;
     virtual void MoveCursor(const Coordinate delta_x, const Coordinate delta_y) = 0;
+    virtual void SetCursorStartX() = 0;
+    virtual void SetCursorStartY() = 0;
     virtual void SetCursorVisible(const bool visisble = false) = 0;
 
     virtual void Clear() = 0;
